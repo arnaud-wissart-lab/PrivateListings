@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using PrivateListings.Application.Listings;
+using PrivateListings.Infrastructure.Identity;
 
 namespace PrivateListings.Worker;
 
@@ -14,6 +15,7 @@ public sealed class Worker(
         while (!stoppingToken.IsCancellationRequested)
         {
             await ExpireListingsAsync(stoppingToken).ConfigureAwait(false);
+            await PurgeAccountSecurityTokensAsync(stoppingToken).ConfigureAwait(false);
             await Task.Delay(options.Value.Interval, stoppingToken).ConfigureAwait(false);
         }
     }
@@ -36,6 +38,25 @@ public sealed class Worker(
             WorkerLog.ListingExpirationFailed(logger, exception);
         }
     }
+
+    private async Task PurgeAccountSecurityTokensAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var tokenStore = scope.ServiceProvider.GetRequiredService<AccountSecurityTokenStore>();
+            var deletedCount = await tokenStore.PurgeExpiredAsync(cancellationToken).ConfigureAwait(false);
+
+            WorkerLog.AccountSecurityTokenPurgeCompleted(logger, deletedCount);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            WorkerLog.AccountSecurityTokenPurgeFailed(logger, exception);
+        }
+    }
 }
 
 public sealed class ListingExpirationWorkerOptions
@@ -52,4 +73,10 @@ internal static partial class WorkerLog
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Error, Message = "L'expiration automatique des annonces a échoué.")]
     public static partial void ListingExpirationFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information, Message = "Purge des jetons de sécurité expirés terminée. Jetons supprimés : {DeletedCount}.")]
+    public static partial void AccountSecurityTokenPurgeCompleted(ILogger logger, int deletedCount);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Error, Message = "La purge des jetons de sécurité expirés a échoué.")]
+    public static partial void AccountSecurityTokenPurgeFailed(ILogger logger, Exception exception);
 }
