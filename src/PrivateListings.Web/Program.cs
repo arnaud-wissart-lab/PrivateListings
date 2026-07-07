@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using PrivateListings.Application;
+using PrivateListings.Application.Listings;
 using PrivateListings.Infrastructure;
 using PrivateListings.Infrastructure.Identity;
+using PrivateListings.Web;
 using PrivateListings.Web.Admin;
 using PrivateListings.Web.Components;
 using PrivateListings.Web.Components.Account;
@@ -44,6 +47,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPrivateListingsBackOfficePolicies();
 });
 
+var listingImageOptions = builder.Configuration
+    .GetSection(ListingImageOptions.SectionName)
+    .Get<ListingImageOptions>()
+    ?? new ListingImageOptions();
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    var maxUploadSize = Math.Max(1, listingImageOptions.MaxSizeInBytes);
+    options.MultipartBodyLengthLimit = maxUploadSize + 64 * 1024;
+});
+
 // Ajoute les services Blazor.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -63,6 +77,8 @@ if (!app.Environment.IsDevelopment())
     // La durée HSTS par défaut est de 30 jours. Elle devra être ajustée avant la production.
     app.UseHsts();
 }
+
+app.UsePrivateListingsSecurityHeaders();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 

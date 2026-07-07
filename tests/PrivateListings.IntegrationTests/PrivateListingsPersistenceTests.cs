@@ -170,6 +170,17 @@ public sealed class PrivateListingsPersistenceTests(PostgreSqlFixture fixture)
         Assert.False(await dbContext.Listings.AnyAsync());
     }
 
+    [Fact]
+    public void SeedDemoEstRefuseEnProductionQuandIlEstActive()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            PrivateListingsDemoSeedPolicy.ShouldRun(
+                new TestHostEnvironment(Environments.Production),
+                CreateDemoSeedOptions()));
+
+        Assert.Contains("production", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static UserProfile CreateUser(string email, string displayName)
         => UserProfile.Create(
             EmailAddress.Create(email),
@@ -181,7 +192,6 @@ public sealed class PrivateListingsPersistenceTests(PostgreSqlFixture fixture)
         => new()
         {
             Enabled = true,
-            AllowInProduction = false,
             Accounts = new PrivateListingsDemoSeedAccountsOptions
             {
                 Admin = new PrivateListingsDemoSeedAccountOptions

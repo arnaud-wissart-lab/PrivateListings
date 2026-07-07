@@ -15,7 +15,7 @@ public sealed class VisitorPagesTests(E2EApplicationFixture fixture) : E2ETestBa
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Tableau de bord" }))
                 .ToBeVisibleAsync()
                 .ConfigureAwait(false);
-            await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Voir les annonces" }))
+            await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Se connecter" }))
                 .ToBeVisibleAsync()
                 .ConfigureAwait(false);
             await Expect(page.GetByText("Annonces locales"))

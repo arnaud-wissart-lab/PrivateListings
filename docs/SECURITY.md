@@ -194,7 +194,7 @@ Le journal d'audit ne doit pas stocker de secrets. Les métadonnées techniques 
 - Aucun email réel ne doit être utilisé sans consentement explicite.
 - Le mode démo ne doit pas partager de base ou de stockage avec la production.
 - Les comptes démo ne doivent jamais donner accès aux données réelles.
-- Le seed démo est désactivé par défaut et ne s'exécute pas en production sans option explicite.
+- Le seed démo est désactivé par défaut et ne s'exécute jamais en production.
 - Les mots de passe de démonstration sont des valeurs fictives configurées pour `Demo`; seul leur hachage PBKDF2 est stocké en base.
 - Les emails de démonstration utilisent le domaine réservé `example.test`.
 - Le lancement manuel du seed démo depuis le back-office est refusé hors environnement `Demo` et produit un `AuditLog`.

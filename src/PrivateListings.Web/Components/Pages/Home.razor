@@ -7,7 +7,14 @@
                 Subtitle="Annonces privées, coups de main, événements et projets d'entraide locale."
                 Eyebrow="PrivateListings">
         <Actions>
-            <a class="primary-link-button" href="/annonces">Voir les annonces</a>
+            <AuthorizeView>
+                <Authorized>
+                    <a class="primary-link-button" href="/annonces">Voir les annonces</a>
+                </Authorized>
+                <NotAuthorized>
+                    <a class="primary-link-button" href="/login">Se connecter</a>
+                </NotAuthorized>
+            </AuthorizeView>
             <a class="secondary-link-button" href="/donnees-securite">Données &amp; sécurité</a>
             <AuthorizeView>
                 <Authorized>

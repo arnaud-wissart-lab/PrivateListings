@@ -6,8 +6,6 @@ public sealed class PrivateListingsDemoSeedOptions
 
     public bool Enabled { get; set; }
 
-    public bool AllowInProduction { get; set; }
-
     public PrivateListingsDemoSeedAccountsOptions Accounts { get; set; } = new();
 }
 

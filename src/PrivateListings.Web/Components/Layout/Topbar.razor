@@ -6,11 +6,15 @@
         </a>
     </div>
 
-    <form class="topbar-search" method="get" action="/annonces" role="search">
-        <label class="sr-only" for="global-search">Rechercher une annonce</label>
-        <span class="search-icon" aria-hidden="true"></span>
-        <input id="global-search" name="q" type="search" placeholder="Rechercher une annonce, un service, un lieu" />
-    </form>
+    <AuthorizeView>
+        <Authorized>
+            <form class="topbar-search" method="get" action="/annonces" role="search">
+                <label class="sr-only" for="global-search">Rechercher une annonce</label>
+                <span class="search-icon" aria-hidden="true"></span>
+                <input id="global-search" name="q" type="search" placeholder="Rechercher une annonce, un service, un lieu" />
+            </form>
+        </Authorized>
+    </AuthorizeView>
 
     <div class="topbar-actions">
         <AuthorizeView>

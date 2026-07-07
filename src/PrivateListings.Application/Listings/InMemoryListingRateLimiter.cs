@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Options;
 
 namespace PrivateListings.Application.Listings;
@@ -55,11 +57,16 @@ public sealed class InMemoryListingRateLimiter(
         };
 
     private static string BuildKey(ListingRateLimitRequest request)
-        => string.Join(
+    {
+        var rawKey = string.Join(
             ':',
             request.Action,
             request.ActorId.Value.ToString("N"),
             Normalize(request.RequestContext.RemoteIpAddress));
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(rawKey));
+        return Convert.ToHexString(hash);
+    }
 
     private static string Normalize(string? value)
         => string.IsNullOrWhiteSpace(value) ? "unknown" : value.Trim().ToLowerInvariant();

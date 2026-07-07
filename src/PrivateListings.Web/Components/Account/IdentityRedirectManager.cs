@@ -17,14 +17,7 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
 
     public void RedirectTo(string? uri)
     {
-        uri ??= string.Empty;
-
-        if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
-        {
-            uri = navigationManager.ToBaseRelativePath(uri);
-        }
-
-        navigationManager.NavigateTo(uri);
+        navigationManager.NavigateTo(NormalizeLocalUri(uri));
     }
 
     public void RedirectTo(string uri, Dictionary<string, object?> queryParameters)
@@ -38,5 +31,35 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
     {
         context.Response.Cookies.Append(StatusCookieName, message, StatusCookieBuilder.Build(context));
         RedirectTo(uri);
+    }
+
+    private string NormalizeLocalUri(string? uri)
+    {
+        if (string.IsNullOrWhiteSpace(uri))
+        {
+            return "/";
+        }
+
+        if (Uri.IsWellFormedUriString(uri, UriKind.Relative)
+            && !uri.StartsWith("//", StringComparison.Ordinal)
+            && uri[0] != '\\')
+        {
+            return uri;
+        }
+
+        try
+        {
+            var relativeUri = navigationManager.ToBaseRelativePath(uri);
+            if (string.IsNullOrWhiteSpace(relativeUri))
+            {
+                return "/";
+            }
+
+            return relativeUri[0] == '/' ? relativeUri : $"/{relativeUri}";
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            return "/";
+        }
     }
 }

@@ -179,7 +179,6 @@ public sealed class E2EApplicationFixture : IAsyncLifetime, IDisposable
             ["PrivateListings:Persistence:ApplyMigrationsOnStartup"] = "true",
             ["PrivateListings:ReferenceData:SeedInitialCategories"] = "true",
             ["PrivateListings:DemoSeed:Enabled"] = "true",
-            ["PrivateListings:DemoSeed:AllowInProduction"] = "false",
             ["PrivateListings:DemoSeed:Accounts:Admin:Email"] = DemoAccounts.Admin.Email,
             ["PrivateListings:DemoSeed:Accounts:Admin:DisplayName"] = "Administrateur Démo",
             ["PrivateListings:DemoSeed:Accounts:Admin:Password"] = DemoAccounts.Admin.Password,

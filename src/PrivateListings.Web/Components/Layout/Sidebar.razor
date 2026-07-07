@@ -9,20 +9,20 @@
             <span class="nav-icon nav-icon-dashboard" aria-hidden="true"></span>
             <span>Tableau de bord</span>
         </NavLink>
-        <NavLink class="app-nav-link" ActiveClass="is-active" href="/annonces">
-            <span class="nav-icon nav-icon-listings" aria-hidden="true"></span>
-            <span>Annonces</span>
-        </NavLink>
         <NavLink class="app-nav-link" ActiveClass="is-active" href="/donnees-securite">
             <span class="nav-icon nav-icon-profile" aria-hidden="true"></span>
             <span>Données &amp; sécurité</span>
         </NavLink>
-        <NavLink class="app-nav-link" ActiveClass="is-active" href="/annonces/nouvelle">
-            <span class="nav-icon nav-icon-publish" aria-hidden="true"></span>
-            <span>Publier</span>
-        </NavLink>
         <AuthorizeView>
             <Authorized>
+                <NavLink class="app-nav-link" ActiveClass="is-active" href="/annonces">
+                    <span class="nav-icon nav-icon-listings" aria-hidden="true"></span>
+                    <span>Annonces</span>
+                </NavLink>
+                <NavLink class="app-nav-link" ActiveClass="is-active" href="/annonces/nouvelle">
+                    <span class="nav-icon nav-icon-publish" aria-hidden="true"></span>
+                    <span>Publier</span>
+                </NavLink>
                 <NavLink class="app-nav-link" ActiveClass="is-active" href="/messagerie">
                     <span class="nav-icon nav-icon-messages" aria-hidden="true"></span>
                     <span>Messages</span>

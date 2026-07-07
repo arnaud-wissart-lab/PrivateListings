@@ -16,7 +16,8 @@ internal static class ListingEndpointRouteBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
-        endpoints.MapGet("/annonces/images/{imageId:guid}", OpenImageAsync);
+        endpoints.MapGet("/annonces/images/{imageId:guid}", OpenImageAsync)
+            .RequireAuthorization();
 
         var group = endpoints.MapGroup("/annonces").RequireAuthorization();
         group.MapPost("/{listingId:guid}/images", UploadImageAsync);

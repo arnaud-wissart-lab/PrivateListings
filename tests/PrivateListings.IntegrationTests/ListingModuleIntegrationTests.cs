@@ -180,6 +180,21 @@ public sealed class ListingImageStorageTests : IDisposable
             content.Length)));
     }
 
+    [Fact]
+    public async Task SaveAsyncRefuseUneImageTropGrande()
+    {
+        var storage = CreateStorage(maxSizeInBytes: 8);
+        var content = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => storage.SaveAsync(new ListingImageUpload(
+            "image-test.png",
+            "image/png",
+            new MemoryStream(content),
+            content.Length)));
+    }
+
+
     public void Dispose()
     {
         if (Directory.Exists(rootPath))
@@ -188,11 +203,11 @@ public sealed class ListingImageStorageTests : IDisposable
         }
     }
 
-    private FileSystemListingImageStorage CreateStorage()
+    private FileSystemListingImageStorage CreateStorage(long maxSizeInBytes = 1024 * 1024)
         => new(
             Options.Create(new ListingImageOptions
             {
-                MaxSizeInBytes = 1024 * 1024,
+                MaxSizeInBytes = maxSizeInBytes,
                 MaxImagesPerListing = 4,
                 StorageRoot = Path.Combine(rootPath, "images")
             }),

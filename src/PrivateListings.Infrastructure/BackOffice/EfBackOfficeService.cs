@@ -737,7 +737,6 @@ public sealed class EfBackOfficeService(
         var options = new PrivateListingsDemoSeedOptions
         {
             Enabled = true,
-            AllowInProduction = false,
             Accounts = demoSeedOptions.Value.Accounts
         };
 

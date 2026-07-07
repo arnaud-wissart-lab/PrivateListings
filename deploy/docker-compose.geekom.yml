@@ -14,7 +14,6 @@ x-app-environment: &app-environment
   PrivateListings__Persistence__ApplyMigrationsOnStartup: "${PRIVATE_LISTINGS_APPLY_MIGRATIONS_ON_STARTUP:-false}"
   PrivateListings__ReferenceData__SeedInitialCategories: "${PRIVATE_LISTINGS_SEED_INITIAL_CATEGORIES:-false}"
   PrivateListings__DemoSeed__Enabled: "${PRIVATE_LISTINGS_DEMO_SEED_ENABLED:-false}"
-  PrivateListings__DemoSeed__AllowInProduction: "${PRIVATE_LISTINGS_DEMO_SEED_ALLOW_IN_PRODUCTION:-false}"
   PrivateListings__HealthChecks__ExposeEndpoints: "${PRIVATE_LISTINGS_EXPOSE_HEALTH_ENDPOINTS:-true}"
   PrivateListings__ListingImages__StorageRoot: "/var/lib/privatelistings/uploads/listing-images"
   PrivateListings__Email__FromAddress: "${PRIVATE_LISTINGS_EMAIL_FROM_ADDRESS:-noreply@privatelistings.local}"

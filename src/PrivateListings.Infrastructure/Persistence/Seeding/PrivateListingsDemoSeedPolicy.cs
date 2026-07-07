@@ -16,13 +16,8 @@ public static class PrivateListingsDemoSeedPolicy
 
         if (environment.IsProduction())
         {
-            if (!options.AllowInProduction)
-            {
-                throw new InvalidOperationException(
-                    "Le seed de démonstration est activé en production sans autorisation explicite.");
-            }
-
-            return true;
+            throw new InvalidOperationException(
+                "Le seed de démonstration ne peut pas être exécuté en production.");
         }
 
         return environment.IsDevelopment() || environment.IsEnvironment("Demo");
