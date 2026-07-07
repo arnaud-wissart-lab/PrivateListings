@@ -1,5 +1,7 @@
 # PrivateListings
 
+[![CI](https://github.com/arnaud-wissart-lab/PrivateListings/actions/workflows/ci.yml/badge.svg)](https://github.com/arnaud-wissart-lab/PrivateListings/actions/workflows/ci.yml)
+
 PrivateListings est une plateforme web responsive d'annonces privées et d'entraide locale. Elle permet à des membres d'une communauté de publier des annonces, proposer des services, demander de l'aide, organiser des événements, échanger via messagerie interne, et administrer ou modérer les contenus.
 
 ## Vision
@@ -28,6 +30,7 @@ Le produit vise une expérience sobre, fiable et sécurisée pour des communaut�
 - [Architecture](docs/ARCHITECTURE.md)
 - [Sécurité](docs/SECURITY.md)
 - [Confidentialité](docs/PRIVACY.md)
+- [Contribution](docs/CONTRIBUTING.md)
 - [Règles projet Codex](AGENTS.md)
 
 ## Structure technique
@@ -56,6 +59,12 @@ dotnet restore PrivateListings.sln
 dotnet build PrivateListings.sln
 dotnet test PrivateListings.sln
 dotnet run --project src/PrivateListings.AppHost/PrivateListings.AppHost.csproj
+```
+
+La suite qualité locale complète est disponible via :
+
+```powershell
+.\scripts\test-all.ps1
 ```
 
 ## État actuel

@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  NODE_VERSION: 22.x
+  SOLUTION_PATH: PrivateListings.sln
+
+jobs:
+  quality:
+    name: Qualité
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Installer .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restaurer les dépendances
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Détecter les assets npm
+        id: npm-assets
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem -Path . -Recurse -Filter package.json -File |
+            Where-Object { $_.FullName -notmatch '[\\/](bin|obj|node_modules)[\\/]' }
+          $present = (($packages | Measure-Object).Count -gt 0).ToString().ToLowerInvariant()
+          "present=$present" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Installer Node.js
+        if: steps.npm-assets.outputs.present == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Construire les assets npm
+        if: steps.npm-assets.outputs.present == 'true'
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem -Path . -Recurse -Filter package.json -File |
+            Where-Object { $_.FullName -notmatch '[\\/](bin|obj|node_modules)[\\/]' }
+
+          foreach ($package in $packages) {
+            Push-Location $package.DirectoryName
+            try {
+              if (-not (Test-Path package-lock.json)) {
+                throw "package-lock.json est requis pour un build npm reproductible dans $($package.DirectoryName)."
+              }
+
+              npm ci
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              npm run build --if-present
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+            finally {
+              Pop-Location
+            }
+          }
+
+      - name: Compiler en Release
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Vérifier le format
+        run: dotnet format ${{ env.SOLUTION_PATH }} --verify-no-changes --no-restore --verbosity normal
+
+      - name: Exécuter les tests
+        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: Publier les résultats de tests en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: ignore
+
+      - name: Construire l'image Docker Web
+        run: docker build --file src/PrivateListings.Web/Dockerfile --tag private-listings-web:ci .
+
+      - name: Construire l'image Docker Worker
+        run: docker build --file src/PrivateListings.Worker/Dockerfile --tag private-listings-worker:ci .
