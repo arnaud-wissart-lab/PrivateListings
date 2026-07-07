@@ -8,6 +8,7 @@ public sealed class AccountSecurityTokenStore(
     TimeProvider timeProvider)
 {
     public const string EmailConfirmationPurpose = "EmailConfirmation";
+    public const string EmailChangePurpose = "EmailChange";
     public const string PasswordResetPurpose = "PasswordReset";
 
     public async Task StoreAsync(
@@ -66,5 +67,15 @@ public sealed class AccountSecurityTokenStore(
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
+    }
+
+    public async Task<int> PurgeExpiredAsync(CancellationToken cancellationToken = default)
+    {
+        var now = timeProvider.GetUtcNow();
+
+        return await dbContext.AccountSecurityTokens
+            .Where(storedToken => storedToken.ExpiresAt <= now)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 }

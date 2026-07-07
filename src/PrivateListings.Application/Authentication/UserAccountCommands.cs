@@ -16,7 +16,8 @@ public sealed record LoginAccountCommand(
 public sealed record ConfirmEmailCommand(
     Guid UserId,
     string EncodedToken,
-    AccountRequestContext RequestContext);
+    AccountRequestContext RequestContext,
+    string? NewEmail = null);
 
 public sealed record RequestPasswordResetCommand(
     string Email,
@@ -39,7 +40,8 @@ public sealed record ChangeEmailCommand(
     Guid UserId,
     string NewEmail,
     string CurrentPassword,
-    AccountRequestContext RequestContext);
+    AccountRequestContext RequestContext,
+    string? ConfirmationUrlBase = null);
 
 public sealed record RequestAccountDeletionCommand(
     Guid UserId,

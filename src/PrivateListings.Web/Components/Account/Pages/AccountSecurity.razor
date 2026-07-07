@@ -6,8 +6,10 @@
 @using Microsoft.AspNetCore.Identity
 @using PrivateListings.Infrastructure.Identity
 @using PrivateListings.Web.Components.Account
+@using PrivateListings.Web.PublicUrls
 
 @inject IUserAccountService AccountService
+@inject IPublicUrlBuilder PublicUrlBuilder
 @inject UserManager<PrivateListingsUser> UserManager
 
 <PageTitle>Sécurité du compte</PageTitle>
@@ -166,10 +168,11 @@
             userId.Value,
             EmailInput.NewEmail,
             EmailInput.CurrentPassword,
-            BuildRequestContext()));
+            BuildRequestContext(),
+            PublicUrlBuilder.BuildAbsoluteUrl("/confirm-email")));
 
         statusMessage = result.Succeeded
-            ? "Email modifié."
+            ? "Un lien de confirmation a été envoyé à la nouvelle adresse. L'ancienne adresse reste active jusqu'à confirmation."
             : $"Erreur : {string.Join(" ", result.Errors ?? ["la modification n'a pas pu aboutir."])}";
 
         EmailInput = new();

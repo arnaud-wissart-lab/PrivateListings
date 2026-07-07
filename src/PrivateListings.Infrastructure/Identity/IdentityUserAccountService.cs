@@ -231,6 +231,16 @@ public sealed class IdentityUserAccountService(
             return AccountOperationResult.Failed("Le lien de confirmation est invalide.");
         }
 
+        if (!string.IsNullOrWhiteSpace(command.NewEmail))
+        {
+            return await ConfirmEmailChangeAsync(
+                user,
+                command.NewEmail,
+                token,
+                command.RequestContext,
+                cancellationToken).ConfigureAwait(false);
+        }
+
         var canUseToken = await securityTokenStore.TryConsumeAsync(
             user.Id,
             AccountSecurityTokenStore.EmailConfirmationPurpose,
@@ -257,6 +267,79 @@ public sealed class IdentityUserAccountService(
             cancellationToken).ConfigureAwait(false);
 
         return AccountOperationResult.Success(user.Id);
+    }
+
+    private async Task<AccountOperationResult> ConfirmEmailChangeAsync(
+        PrivateListingsUser user,
+        string newEmailValue,
+        string token,
+        AccountRequestContext requestContext,
+        CancellationToken cancellationToken)
+    {
+        if (!TryCreateEmail(newEmailValue, out var newEmail))
+        {
+            return AccountOperationResult.Failed("Le lien de confirmation est invalide.");
+        }
+
+        var existingUser = await userManager.FindByEmailAsync(newEmail.Value).ConfigureAwait(false);
+        if (existingUser is not null && existingUser.Id != user.Id)
+        {
+            return AccountOperationResult.Failed("La nouvelle adresse email ne peut pas être utilisée.");
+        }
+
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database
+                .BeginTransactionAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var canUseToken = await securityTokenStore.TryConsumeAsync(
+                user.Id,
+                AccountSecurityTokenStore.EmailChangePurpose,
+                token,
+                cancellationToken).ConfigureAwait(false);
+
+            if (!canUseToken)
+            {
+                return AccountOperationResult.Failed("Le lien de confirmation est invalide ou expiré.");
+            }
+
+            var previousEmail = user.Email;
+            var emailResult = await userManager.ChangeEmailAsync(user, newEmail.Value, token).ConfigureAwait(false);
+            if (!emailResult.Succeeded)
+            {
+                return AccountOperationResult.Failed("Le lien de confirmation est invalide ou expiré.");
+            }
+
+            var userNameResult = await userManager.SetUserNameAsync(user, newEmail.Value).ConfigureAwait(false);
+            if (!userNameResult.Succeeded)
+            {
+                return AccountOperationResult.Failed("La modification de l'email n'a pas pu aboutir.");
+            }
+
+            var profile = await dbContext.UserProfiles
+                .SingleAsync(profile => profile.Id == user.UserProfileId, cancellationToken)
+                .ConfigureAwait(false);
+
+            profile.ChangeEmailAddress(newEmail);
+
+            await WriteAuditAsync(
+                user.UserProfileId,
+                "Account.EmailChangeConfirmed",
+                AuditLogSubject.ForUserProfile(user.UserProfileId),
+                requestContext,
+                new Dictionary<string, object?>
+                {
+                    ["previousEmailHash"] = HashForAudit(previousEmail),
+                    ["newEmailHash"] = HashForAudit(newEmail.Value)
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            return AccountOperationResult.Success(user.Id);
+        }).ConfigureAwait(false);
     }
 
     public async Task<AccountOperationResult> RequestPasswordResetAsync(
@@ -463,34 +546,33 @@ public sealed class IdentityUserAccountService(
             return AccountOperationResult.Failed("La nouvelle adresse email ne peut pas être utilisée.");
         }
 
-        var profile = await dbContext.UserProfiles
-            .SingleAsync(profile => profile.Id == user.UserProfileId, cancellationToken)
-            .ConfigureAwait(false);
-
-        profile.ChangeEmailAddress(newEmail);
-
-        var emailResult = await userManager.SetEmailAsync(user, newEmail.Value).ConfigureAwait(false);
-        var userNameResult = await userManager.SetUserNameAsync(user, newEmail.Value).ConfigureAwait(false);
-        user.EmailConfirmed = true;
-        var updateResult = await userManager.UpdateAsync(user).ConfigureAwait(false);
-
-        if (!emailResult.Succeeded || !userNameResult.Succeeded || !updateResult.Succeeded)
+        if (string.IsNullOrWhiteSpace(command.ConfirmationUrlBase))
         {
             return AccountOperationResult.Failed("La modification de l'email n'a pas pu aboutir.");
         }
 
+        var token = await userManager.GenerateChangeEmailTokenAsync(user, newEmail.Value).ConfigureAwait(false);
+        await securityTokenStore.StoreAsync(
+            user.Id,
+            AccountSecurityTokenStore.EmailChangePurpose,
+            token,
+            tokenOptions.Value.TokenLifespan,
+            cancellationToken).ConfigureAwait(false);
+
+        var confirmationLink = BuildCallbackUrl(command.ConfirmationUrlBase, user.Id, token, newEmail.Value);
+        await emailSender.SendConfirmationLinkAsync(user, newEmail.Value, confirmationLink).ConfigureAwait(false);
+
         await WriteAuditAsync(
             user.UserProfileId,
-            "Account.EmailChanged",
+            "Account.EmailChangeRequested",
             AuditLogSubject.ForUserProfile(user.UserProfileId),
             command.RequestContext,
             new Dictionary<string, object?>
             {
+                ["previousEmailHash"] = HashForAudit(user.Email),
                 ["newEmailHash"] = HashForAudit(newEmail.Value)
             },
             cancellationToken).ConfigureAwait(false);
-
-        await signInManager.RefreshSignInAsync(user).ConfigureAwait(false);
 
         return AccountOperationResult.Success(user.Id);
     }
@@ -583,16 +665,25 @@ public sealed class IdentityUserAccountService(
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static string BuildCallbackUrl(string callbackUrlBase, Guid userId, string token)
+    private static string BuildCallbackUrl(
+        string callbackUrlBase,
+        Guid userId,
+        string token,
+        string? newEmail = null)
     {
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        return QueryHelpers.AddQueryString(
-            callbackUrlBase,
-            new Dictionary<string, string?>
-            {
-                ["userId"] = userId.ToString("D"),
-                ["code"] = encodedToken
-            });
+        var query = new Dictionary<string, string?>
+        {
+            ["userId"] = userId.ToString("D"),
+            ["code"] = encodedToken
+        };
+
+        if (!string.IsNullOrWhiteSpace(newEmail))
+        {
+            query["email"] = newEmail;
+        }
+
+        return QueryHelpers.AddQueryString(callbackUrlBase, query);
     }
 
     private static bool TryDecodeToken(string encodedToken, out string token)

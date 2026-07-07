@@ -29,6 +29,9 @@
     [SupplyParameterFromQuery(Name = "code")]
     private string? Code { get; set; }
 
+    [SupplyParameterFromQuery(Name = "email")]
+    private string? NewEmail { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         if (UserId is null || string.IsNullOrWhiteSpace(Code))
@@ -40,7 +43,8 @@
         var result = await AccountService.ConfirmEmailAsync(new ConfirmEmailCommand(
             UserId.Value,
             Code,
-            BuildRequestContext()));
+            BuildRequestContext(),
+            NewEmail));
 
         statusMessage = result.Succeeded
             ? "Email confirmé. Vous pouvez vous connecter."

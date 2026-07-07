@@ -184,6 +184,95 @@ public sealed class UserAuthenticationIntegrationTests(PostgreSqlFixture fixture
     }
 
     [Fact]
+    public async Task ChangeEmailAttendConfirmationDeLaNouvelleAdresse()
+    {
+        await fixture.ResetDatabaseAsync();
+        var emailSender = new CapturingEmailSender();
+        await using var serviceProvider = CreateServiceProvider(emailSender);
+        await using var scope = serviceProvider.CreateAsyncScope();
+        await InitializeIdentityAsync(scope.ServiceProvider);
+        var accountService = scope.ServiceProvider.GetRequiredService<IUserAccountService>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PrivateListingsDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<PrivateListingsUser>>();
+        await RegisterAndConfirmAsync(accountService, emailSender);
+        var user = await userManager.FindByEmailAsync("membre@example.test");
+        Assert.NotNull(user);
+
+        var requestResult = await accountService.ChangeEmailAsync(new ChangeEmailCommand(
+            user.Id,
+            "nouveau@example.test",
+            ValidPassword,
+            CreateRequestContext(),
+            "https://localhost/confirm-email"));
+        var userBeforeConfirmation = await userManager.FindByIdAsync(user.Id.ToString("D"));
+        var profileBeforeConfirmation = await dbContext.UserProfiles
+            .AsNoTracking()
+            .SingleAsync(profile => profile.Id == user.UserProfileId);
+
+        Assert.True(requestResult.Succeeded);
+        Assert.Equal("nouveau@example.test", emailSender.ConfirmationRecipient);
+        Assert.Equal("membre@example.test", userBeforeConfirmation!.Email);
+        Assert.True(userBeforeConfirmation.EmailConfirmed);
+        Assert.Equal("membre@example.test", profileBeforeConfirmation.EmailAddress?.Value);
+        Assert.True(await dbContext.AuditLogs.AnyAsync(auditLog => auditLog.Action == "Account.EmailChangeRequested"));
+
+        var callback = ReadCallback(emailSender.ConfirmationLink);
+        Assert.Equal("nouveau@example.test", callback.Email);
+        var confirmResult = await accountService.ConfirmEmailAsync(new ConfirmEmailCommand(
+            callback.UserId,
+            callback.Code,
+            CreateRequestContext(),
+            callback.Email));
+        var userAfterConfirmation = await userManager.FindByIdAsync(user.Id.ToString("D"));
+        var profileAfterConfirmation = await dbContext.UserProfiles
+            .AsNoTracking()
+            .SingleAsync(profile => profile.Id == user.UserProfileId);
+
+        Assert.True(confirmResult.Succeeded);
+        Assert.Equal("nouveau@example.test", userAfterConfirmation!.Email);
+        Assert.Equal("nouveau@example.test", userAfterConfirmation.UserName);
+        Assert.True(userAfterConfirmation.EmailConfirmed);
+        Assert.Equal("nouveau@example.test", profileAfterConfirmation.EmailAddress?.Value);
+        Assert.True(await dbContext.AuditLogs.AnyAsync(auditLog => auditLog.Action == "Account.EmailChangeConfirmed"));
+    }
+
+    [Fact]
+    public async Task PurgeExpiredAsyncSupprimeUniquementLesJetonsExpires()
+    {
+        await fixture.ResetDatabaseAsync();
+        var emailSender = new CapturingEmailSender();
+        await using var serviceProvider = CreateServiceProvider(emailSender);
+        await using var scope = serviceProvider.CreateAsyncScope();
+        await InitializeIdentityAsync(scope.ServiceProvider);
+        var accountService = scope.ServiceProvider.GetRequiredService<IUserAccountService>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PrivateListingsDbContext>();
+        var tokenStore = scope.ServiceProvider.GetRequiredService<AccountSecurityTokenStore>();
+        await RegisterAndConfirmAsync(accountService, emailSender);
+        var user = await dbContext.Users.SingleAsync();
+        var now = DateTimeOffset.UtcNow;
+
+        dbContext.AccountSecurityTokens.Add(AccountSecurityToken.Create(
+            user.Id,
+            "TestExpired",
+            "jeton-expire",
+            now.AddHours(-3),
+            now.AddHours(-2)));
+        dbContext.AccountSecurityTokens.Add(AccountSecurityToken.Create(
+            user.Id,
+            "TestActive",
+            "jeton-actif",
+            now.AddMinutes(-5),
+            now.AddHours(1)));
+        await dbContext.SaveChangesAsync();
+
+        var deletedCount = await tokenStore.PurgeExpiredAsync();
+
+        Assert.Equal(1, deletedCount);
+        Assert.False(await dbContext.AccountSecurityTokens.AnyAsync(token => token.Purpose == "TestExpired"));
+        Assert.True(await dbContext.AccountSecurityTokens.AnyAsync(token => token.Purpose == "TestActive"));
+    }
+
+    [Fact]
     public void AccesNonAutoriseEstRefuseSurLaPageSecuriteCompte()
     {
         var attributes = typeof(AccountSecurity).GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true);
@@ -251,19 +340,24 @@ public sealed class UserAuthenticationIntegrationTests(PostgreSqlFixture fixture
         var query = QueryHelpers.ParseQuery(uri.Query);
         var userId = Guid.Parse(query["userId"].ToString());
         var code = query["code"].ToString();
+        var email = query.TryGetValue("email", out var emailValues)
+            ? emailValues.ToString()
+            : null;
 
         Assert.False(string.IsNullOrWhiteSpace(code));
-        return new CallbackValues(userId, code);
+        return new CallbackValues(userId, code, string.IsNullOrWhiteSpace(email) ? null : email);
     }
 
     private static AccountRequestContext CreateRequestContext()
         => new("127.0.0.1", "PrivateListings.Tests");
 
-    private sealed record CallbackValues(Guid UserId, string Code);
+    private sealed record CallbackValues(Guid UserId, string Code, string? Email);
 
     private sealed class CapturingEmailSender : IEmailSender<PrivateListingsUser>
     {
         public string? ConfirmationLink { get; private set; }
+
+        public string? ConfirmationRecipient { get; private set; }
 
         public string? ResetLink { get; private set; }
 
@@ -274,6 +368,7 @@ public sealed class UserAuthenticationIntegrationTests(PostgreSqlFixture fixture
             string email,
             string confirmationLink)
         {
+            ConfirmationRecipient = email;
             ConfirmationLink = confirmationLink;
             return Task.CompletedTask;
         }
