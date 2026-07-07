@@ -10,7 +10,7 @@ Depuis la racine du dépôt :
 dotnet restore PrivateListings.sln
 dotnet build PrivateListings.sln --configuration Release --no-restore
 dotnet format PrivateListings.sln --verify-no-changes --no-restore --verbosity normal
-dotnet test PrivateListings.sln --configuration Release --no-build
+dotnet test PrivateListings.sln --configuration Release --no-build --filter "Category!=E2E"
 ```
 
 Le script local regroupe ces vérifications :
@@ -20,6 +20,13 @@ Le script local regroupe ces vérifications :
 ```
 
 Les tests d'intégration utilisent PostgreSQL via Testcontainers. Docker Desktop doit être lancé avant d'exécuter toute suite qui dépend de ces tests.
+
+Les tests E2E Playwright sont lancés séparément, avec navigateur headless par défaut :
+
+```powershell
+.\scripts\e2e.ps1
+.\scripts\e2e.ps1 -Headed
+```
 
 Pour lancer l'application en développement :
 

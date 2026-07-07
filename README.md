@@ -30,6 +30,7 @@ Le produit vise une expérience sobre, fiable et sécurisée pour des communaut�
 - [Architecture](docs/ARCHITECTURE.md)
 - [Sécurité](docs/SECURITY.md)
 - [Confidentialité](docs/PRIVACY.md)
+- [Tests E2E Playwright](docs/E2E.md)
 - [Déploiement GEEKOM](docs/DEPLOYMENT.md)
 - [Contribution](docs/CONTRIBUTING.md)
 - [Règles projet Codex](AGENTS.md)
@@ -66,6 +67,13 @@ La suite qualité locale complète est disponible via :
 
 ```powershell
 .\scripts\test-all.ps1
+```
+
+Les parcours E2E Playwright sont exécutables séparément :
+
+```powershell
+.\scripts\e2e.ps1
+.\scripts\e2e.ps1 -Headed
 ```
 
 ## État actuel

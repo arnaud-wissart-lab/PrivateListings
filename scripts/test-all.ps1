@@ -77,23 +77,13 @@ try {
     }
 
     Invoke-Step "Tests automatisés" {
-        dotnet test $solutionPath --configuration Release --no-build
+        dotnet test $solutionPath --configuration Release --no-build --filter "Category!=E2E"
         Assert-NativeCommandSucceeded "dotnet test"
     }
 
     if ($IncludeE2E) {
-        $e2eProjects = Get-ChildItem -Path (Join-Path $repoRoot "tests") -Recurse -Filter "*.csproj" |
-            Where-Object { $_.Name -match "E2E|EndToEnd" }
-
-        if (-not $e2eProjects) {
-            Write-Host "Aucun projet de tests e2e détecté."
-        }
-
-        foreach ($project in $e2eProjects) {
-            Invoke-Step "Tests e2e $($project.BaseName)" {
-                dotnet test $project.FullName --configuration Release --no-build
-                Assert-NativeCommandSucceeded "dotnet test $($project.FullName)"
-            }
+        Invoke-Step "Tests E2E Playwright" {
+            & (Join-Path $repoRoot "scripts/e2e.ps1") -Configuration Release -SkipBuild
         }
     }
 }

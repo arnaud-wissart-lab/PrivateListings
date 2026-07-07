@@ -85,7 +85,7 @@ jobs:
         run: dotnet format ${{ env.SOLUTION_PATH }} --verify-no-changes --no-restore --verbosity normal
 
       - name: Exécuter les tests
-        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-build --filter "Category!=E2E" --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
 
       - name: Publier les résultats de tests en cas d'échec
         if: failure()
@@ -100,3 +100,33 @@ jobs:
 
       - name: Construire l'image Docker Worker
         run: docker build --file src/PrivateListings.Worker/Dockerfile --tag private-listings-worker:ci .
+
+  e2e:
+    name: E2E Playwright
+    runs-on: ubuntu-latest
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Installer .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Exécuter les tests E2E
+        shell: pwsh
+        run: ./scripts/e2e.ps1 -Configuration Release -InstallWithDeps
+
+      - name: Publier les résultats E2E en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            TestResults/E2E/**/*.trx
+            output/playwright/**
+          if-no-files-found: ignore

@@ -18,7 +18,7 @@ public sealed class PrivateListingsDemoDataSeeder(
     PrivateListingsIdentitySeeder identitySeeder,
     UserManager<PrivateListingsUser> userManager)
 {
-    private static readonly DateTimeOffset SeedDate = new(2026, 7, 7, 8, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset SeedDate = new(2026, 1, 1, 8, 0, 0, TimeSpan.Zero);
 
     public async Task SeedAsync(
         IHostEnvironment environment,
@@ -226,7 +226,7 @@ public sealed class PrivateListingsDemoDataSeeder(
             var (categoryName, listingType) = categoryCycle[index % categoryCycle.Length];
             var owner = users[(index + 3) % users.Count];
             var createdAt = SeedDate.AddDays(-(index % 30)).AddMinutes(index);
-            var expiresAt = createdAt.AddDays(35 + (index % 20));
+            var expiresAt = createdAt.AddYears(2).AddDays(index % 20);
             var listing = Listing.Create(
                 owner.Id,
                 categories[categoryName].Id,
