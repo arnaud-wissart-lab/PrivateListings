@@ -4,8 +4,10 @@
     <a class="app-brand" href="/">PrivateListings</a>
     <nav class="app-nav" aria-label="Navigation principale">
         <a href="/">Accueil</a>
+        <a href="/annonces">Annonces</a>
         <AuthorizeView>
             <Authorized>
+                <a href="/mes-annonces">Mes annonces</a>
                 <a href="/account-security">Sécurité</a>
                 <form action="/account/logout" method="post" class="logout-form">
                     <AntiforgeryToken />

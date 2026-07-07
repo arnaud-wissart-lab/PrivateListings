@@ -19,6 +19,10 @@ internal sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
                 table.HasCheckConstraint(
                     "ck_listings_published_after_created",
                     "published_at IS NULL OR published_at >= created_at");
+
+                table.HasCheckConstraint(
+                    "ck_listings_price_positive",
+                    "price IS NULL OR price >= 0");
             });
 
         builder.HasKey(listing => listing.Id);
@@ -53,6 +57,17 @@ internal sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
             .HasConversion<string>()
             .HasMaxLength(32)
             .IsRequired();
+
+        builder.Property(listing => listing.ApproximateLocation)
+            .HasColumnName("approximate_location")
+            .HasMaxLength(120);
+
+        builder.Property(listing => listing.Price)
+            .HasColumnName("price")
+            .HasPrecision(12, 2);
+
+        builder.Property(listing => listing.EventDate)
+            .HasColumnName("event_date");
 
         builder.Property(listing => listing.Status)
             .HasColumnName("status")
@@ -106,6 +121,12 @@ internal sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
 
         builder.HasIndex(listing => new { listing.CategoryId, listing.Status })
             .HasDatabaseName("ix_listings_category_status");
+
+        builder.HasIndex(listing => new { listing.Type, listing.Status })
+            .HasDatabaseName("ix_listings_type_status");
+
+        builder.HasIndex(listing => new { listing.Status, listing.ExpiresAt })
+            .HasDatabaseName("ix_listings_status_expires_at");
 
         builder.HasIndex(listing => new { listing.Status, listing.PublishedAt })
             .HasDatabaseName("ix_listings_status_published_at");

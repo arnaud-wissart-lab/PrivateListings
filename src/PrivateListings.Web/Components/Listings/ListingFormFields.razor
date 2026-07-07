@@ -1,0 +1,68 @@
+@using PrivateListings.Application.Listings
+@using PrivateListings.Domain.Listings
+
+<label class="field-label" for="@($"{IdPrefix}-title")">Titre</label>
+<InputText id="@($"{IdPrefix}-title")" @bind-Value="Input.Title" class="field-input" maxlength="160" />
+<ValidationMessage For="() => Input.Title" class="field-validation" />
+
+<label class="field-label" for="@($"{IdPrefix}-description")">Description</label>
+<InputTextArea id="@($"{IdPrefix}-description")" @bind-Value="Input.Description" class="field-input textarea-input" maxlength="4000" />
+<ValidationMessage For="() => Input.Description" class="field-validation" />
+
+<div class="listing-form-grid">
+    <div>
+        <label class="field-label" for="@($"{IdPrefix}-type")">Type</label>
+        <InputSelect id="@($"{IdPrefix}-type")" @bind-Value="Input.Type" class="field-input">
+            @foreach (var type in Enum.GetValues<ListingType>())
+            {
+                <option value="@type">@ListingDisplay.TypeLabel(type)</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="() => Input.Type" class="field-validation" />
+    </div>
+
+    <div>
+        <label class="field-label" for="@($"{IdPrefix}-category")">Catégorie</label>
+        <InputSelect id="@($"{IdPrefix}-category")" @bind-Value="Input.CategoryId" class="field-input">
+            <option value="">Sélectionner</option>
+            @foreach (var category in Categories)
+            {
+                <option value="@category.Id.Value.ToString("D")">@category.Name</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="() => Input.CategoryId" class="field-validation" />
+    </div>
+</div>
+
+<label class="field-label" for="@($"{IdPrefix}-location")">Localisation approximative</label>
+<InputText id="@($"{IdPrefix}-location")" @bind-Value="Input.ApproximateLocation" class="field-input" maxlength="120" />
+<ValidationMessage For="() => Input.ApproximateLocation" class="field-validation" />
+
+<div class="listing-form-grid">
+    <div>
+        <label class="field-label" for="@($"{IdPrefix}-price")">Prix facultatif</label>
+        <InputNumber id="@($"{IdPrefix}-price")" @bind-Value="Input.Price" class="field-input" min="0" step="0.01" />
+        <ValidationMessage For="() => Input.Price" class="field-validation" />
+    </div>
+
+    <div>
+        <label class="field-label" for="@($"{IdPrefix}-event-date")">Date d'événement</label>
+        <InputDate id="@($"{IdPrefix}-event-date")" @bind-Value="Input.EventDate" class="field-input" />
+        <ValidationMessage For="() => Input.EventDate" class="field-validation" />
+    </div>
+</div>
+
+<label class="field-label" for="@($"{IdPrefix}-expires-at")">Date d'expiration facultative</label>
+<InputDate id="@($"{IdPrefix}-expires-at")" @bind-Value="Input.ExpiresAt" class="field-input" />
+<ValidationMessage For="() => Input.ExpiresAt" class="field-validation" />
+
+@code {
+    [Parameter, EditorRequired]
+    public ListingFormInput Input { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ListingCategoryOption> Categories { get; set; } = [];
+
+    [Parameter]
+    public string IdPrefix { get; set; } = "listing";
+}

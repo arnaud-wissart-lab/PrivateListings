@@ -5,6 +5,7 @@ using PrivateListings.Infrastructure;
 using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Web.Components;
 using PrivateListings.Web.Components.Account;
+using PrivateListings.Web.Listings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +67,7 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapAdditionalIdentityEndpoints();
+app.MapListingEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();

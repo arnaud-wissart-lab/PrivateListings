@@ -20,11 +20,15 @@ public sealed class Listing
         string description,
         ListingType type,
         DateTimeOffset createdAt,
-        DateTimeOffset? expiresAt)
+        DateTimeOffset? expiresAt,
+        string? approximateLocation,
+        decimal? price,
+        DateTimeOffset? eventDate)
     {
         Guard.AgainstEmpty(id.Value, nameof(id));
         Guard.AgainstEmpty(ownerId.Value, nameof(ownerId));
         Guard.AgainstEmpty(categoryId.Value, nameof(categoryId));
+        ValidatePrice(price);
 
         Id = id;
         OwnerId = ownerId;
@@ -32,6 +36,9 @@ public sealed class Listing
         Title = Guard.AgainstBlank(title, nameof(title), 160);
         Description = Guard.AgainstBlank(description, nameof(description), 4_000);
         Type = type;
+        ApproximateLocation = Guard.OptionalText(approximateLocation, nameof(approximateLocation), 120);
+        Price = price;
+        EventDate = eventDate;
         CreatedAt = Guard.AgainstDefault(createdAt, nameof(createdAt));
         ExpiresAt = expiresAt;
         Status = ListingStatus.Draft;
@@ -49,7 +56,14 @@ public sealed class Listing
 
     public ListingType Type { get; private set; }
 
+    public string? ApproximateLocation { get; private set; }
+
+    public decimal? Price { get; private set; }
+
+    public DateTimeOffset? EventDate { get; private set; }
+
     public ListingStatus Status { get; private set; }
+
 
     public DateTimeOffset CreatedAt { get; }
 
@@ -74,8 +88,22 @@ public sealed class Listing
         string description,
         ListingType type,
         DateTimeOffset createdAt,
-        DateTimeOffset? expiresAt = null)
-        => new(ListingId.New(), ownerId, categoryId, title, description, type, createdAt, expiresAt);
+        DateTimeOffset? expiresAt = null,
+        string? approximateLocation = null,
+        decimal? price = null,
+        DateTimeOffset? eventDate = null)
+        => new(
+            ListingId.New(),
+            ownerId,
+            categoryId,
+            title,
+            description,
+            type,
+            createdAt,
+            expiresAt,
+            approximateLocation,
+            price,
+            eventDate);
 
     public ListingStatus GetStatusAt(DateTimeOffset referenceDate)
     {
@@ -93,15 +121,22 @@ public sealed class Listing
         string description,
         ListingType type,
         DateTimeOffset updatedAt,
-        DateTimeOffset? expiresAt = null)
+        DateTimeOffset? expiresAt = null,
+        string? approximateLocation = null,
+        decimal? price = null,
+        DateTimeOffset? eventDate = null)
     {
         EnsureEditable();
         Guard.AgainstEmpty(categoryId.Value, nameof(categoryId));
+        ValidatePrice(price);
 
         CategoryId = categoryId;
         Title = Guard.AgainstBlank(title, nameof(title), 160);
         Description = Guard.AgainstBlank(description, nameof(description), 4_000);
         Type = type;
+        ApproximateLocation = Guard.OptionalText(approximateLocation, nameof(approximateLocation), 120);
+        Price = price;
+        EventDate = eventDate;
         ExpiresAt = expiresAt;
         UpdatedAt = Guard.AgainstDefault(updatedAt, nameof(updatedAt));
 
@@ -121,6 +156,16 @@ public sealed class Listing
         Status = ListingStatus.Published;
 
         ExpireIfNeeded(publicationDate);
+    }
+
+    public void MoveToDraft(DateTimeOffset updatedAt)
+    {
+        EnsureEditable();
+
+        var draftDate = Guard.AgainstDefault(updatedAt, nameof(updatedAt));
+        Status = ListingStatus.Draft;
+        PublishedAt = null;
+        UpdatedAt = draftDate;
     }
 
     public bool ExpireIfNeeded(DateTimeOffset referenceDate)
@@ -181,6 +226,14 @@ public sealed class Listing
         if (Status is ListingStatus.Deleted or ListingStatus.Suspended)
         {
             throw new DomainException("Une annonce supprimée ou suspendue ne peut pas être modifiée.");
+        }
+    }
+
+    private static void ValidatePrice(decimal? price)
+    {
+        if (price is < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(price), "Le prix ne peut pas être négatif.");
         }
     }
 }

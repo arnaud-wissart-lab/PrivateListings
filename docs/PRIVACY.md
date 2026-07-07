@@ -38,11 +38,15 @@ Ce document fixe les principes initiaux. Il ne remplace pas une analyse juridiqu
 
 - Titre.
 - Description.
+- Type d'annonce.
 - Catégorie.
 - Localisation approximative.
+- Prix facultatif.
+- Date d'événement facultative.
+- Date d'expiration facultative.
 - Images associées.
 - Statut.
-- Dates de création, modification, publication et archivage.
+- Dates de création, modification, publication, expiration, suspension et suppression logique lorsque pertinentes.
 
 ### Messagerie
 
@@ -69,6 +73,7 @@ Ce document fixe les principes initiaux. Il ne remplace pas une analyse juridiqu
 - Ne pas collecter de numéro de téléphone par défaut.
 - Ne pas stocker de documents d'identité.
 - Ne pas conserver les noms originaux de fichiers comme source de vérité.
+- Ne pas utiliser les chemins ou noms fournis par l'utilisateur pour stocker les images.
 - Ne pas stocker les jetons temporaires en clair.
 - Ne pas exposer l'email d'un membre aux autres membres sans nécessité produit explicite.
 - Ne pas stocker les mots de passe en clair ; seuls les hachages Identity sont persistés.

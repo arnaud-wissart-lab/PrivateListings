@@ -1,0 +1,96 @@
+@page "/annonces/nouvelle"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Identity
+@using PrivateListings.Infrastructure.Identity
+@using PrivateListings.Web.Components.Account
+
+@inject IListingService ListingService
+@inject UserManager<PrivateListingsUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Nouvelle annonce</PageTitle>
+
+<section class="listing-page listing-form-page">
+    <div class="listing-form-shell">
+        <a href="/annonces" class="listing-back-link">Annonces</a>
+        <h1>Nouvelle annonce</h1>
+
+        <StatusMessage Message="@statusMessage" />
+
+        <EditForm Model="Input" method="post" FormName="create-listing" OnValidSubmit="CreateAsync" class="account-form">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="account-validation" role="alert" />
+
+            <ListingFormFields Input="Input" Categories="categories" IdPrefix="create-listing" />
+
+            <button type="submit" class="primary-button">Créer le brouillon</button>
+        </EditForm>
+    </div>
+</section>
+
+@code {
+    private IReadOnlyList<ListingCategoryOption> categories = [];
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private ListingFormInput Input { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        categories = await ListingService.ListCategoriesAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        var user = await UserManager.GetUserAsync(HttpContext.User);
+        if (user is null)
+        {
+            statusMessage = "Erreur : session invalide.";
+            return;
+        }
+
+        if (!Input.TryBuildCategoryId(out var categoryId))
+        {
+            statusMessage = "Erreur : la catégorie sélectionnée est invalide.";
+            return;
+        }
+
+        var result = await ListingService.CreateAsync(new CreateListingCommand(
+            user.UserProfileId,
+            categoryId,
+            Input.Title,
+            Input.Description,
+            Input.Type,
+            Input.ApproximateLocation,
+            Input.Price,
+            Input.BuildEventDate(),
+            Input.BuildExpirationDate(),
+            BuildRequestContext()));
+
+        if (result.Succeeded && result.ListingId.HasValue)
+        {
+            RedirectManager.RedirectToWithStatus(
+                $"/annonces/{result.ListingId.Value.Value:D}/modifier",
+                "Annonce créée en brouillon.",
+                HttpContext);
+            return;
+        }
+
+        statusMessage = FormatResult(result);
+    }
+
+    private ListingRequestContext BuildRequestContext()
+        => new(
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            HttpContext.Request.Headers["User-Agent"].ToString());
+
+    private static string FormatResult(ListingOperationResult result)
+        => result.Status == ListingOperationStatus.RateLimited
+            ? "Erreur : trop de tentatives. Réessayez plus tard."
+            : $"Erreur : {string.Join(" ", result.Errors ?? ["la création n'a pas pu aboutir."])}";
+}

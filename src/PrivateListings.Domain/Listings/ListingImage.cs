@@ -8,8 +8,7 @@ public sealed class ListingImage
     {
         "image/jpeg",
         "image/png",
-        "image/webp",
-        "image/gif"
+        "image/webp"
     };
 
     private ListingImage()

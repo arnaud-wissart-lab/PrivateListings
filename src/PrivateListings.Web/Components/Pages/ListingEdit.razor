@@ -1,0 +1,190 @@
+@page "/annonces/{ListingId:guid}/modifier"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Identity
+@using PrivateListings.Infrastructure.Identity
+@using PrivateListings.Web.Components.Account
+
+@inject IListingService ListingService
+@inject UserManager<PrivateListingsUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Modifier l'annonce</PageTitle>
+
+<section class="listing-page listing-form-page">
+    @if (details is null)
+    {
+        <div class="listing-empty">
+            <h1>Annonce introuvable</h1>
+            <p>Vous n'êtes pas autorisé à modifier cette annonce ou elle n'existe plus.</p>
+            <a class="secondary-link-button" href="/mes-annonces">Retour à mes annonces</a>
+        </div>
+    }
+    else
+    {
+        <div class="listing-form-shell">
+            <a href="@($"/annonces/{details.Id.Value:D}")" class="listing-back-link">Voir l'annonce</a>
+            <div class="listing-edit-heading">
+                <div>
+                    <h1>Modifier l'annonce</h1>
+                    <span class="status-pill @ListingDisplay.StatusClass(details.Status)">@ListingDisplay.StatusLabel(details.Status)</span>
+                </div>
+                <div class="listing-actions">
+                    @if (details.Status is ListingStatus.Draft or ListingStatus.Expired)
+                    {
+                        <form method="post" action="@($"/annonces/{details.Id.Value:D}/publier")">
+                            <AntiforgeryToken />
+                            <button type="submit" class="primary-button">Publier</button>
+                        </form>
+                    }
+                    @if (details.Status == ListingStatus.Published)
+                    {
+                        <form method="post" action="@($"/annonces/{details.Id.Value:D}/brouillon")">
+                            <AntiforgeryToken />
+                            <button type="submit" class="secondary-button">Passer en brouillon</button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            <StatusMessage Message="@statusMessage" />
+
+            <EditForm Model="Input" method="post" FormName="edit-listing" OnValidSubmit="UpdateAsync" class="account-form">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="account-validation" role="alert" />
+
+                <ListingFormFields Input="Input" Categories="categories" IdPrefix="edit-listing" />
+
+                <button type="submit" class="primary-button">Enregistrer</button>
+            </EditForm>
+
+            <section class="listing-edit-section">
+                <h2>Images</h2>
+                @if (details.Images.Count == 0)
+                {
+                    <p class="listing-muted">Aucune image n'est associée à cette annonce.</p>
+                }
+                else
+                {
+                    <div class="listing-image-strip">
+                        @foreach (var image in details.Images)
+                        {
+                            <img src="@ListingDisplay.ImageUrl(image.Id.Value)" alt="@image.AltText" loading="lazy" />
+                        }
+                    </div>
+                }
+
+                <form method="post" enctype="multipart/form-data" action="@($"/annonces/{details.Id.Value:D}/images")" class="listing-upload-form">
+                    <AntiforgeryToken />
+                    <label class="field-label" for="image">Ajouter une image</label>
+                    <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="field-input" required />
+
+                    <label class="field-label" for="altText">Texte alternatif facultatif</label>
+                    <input id="altText" name="altText" class="field-input" maxlength="160" />
+
+                    <button type="submit" class="primary-button">Téléverser</button>
+                </form>
+            </section>
+
+            <section class="listing-edit-section listing-danger-zone">
+                <h2>Suppression</h2>
+                <form method="post" action="@($"/annonces/{details.Id.Value:D}/supprimer")">
+                    <AntiforgeryToken />
+                    <button type="submit" class="danger-button">Supprimer logiquement</button>
+                </form>
+            </section>
+        </div>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<ListingCategoryOption> categories = [];
+    private PrivateListings.Application.Listings.ListingDetails? details;
+    private PrivateListingsUser? currentUser;
+    private string? statusMessage;
+
+    [Parameter]
+    public Guid ListingId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private ListingFormInput Input { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await UserManager.GetUserAsync(HttpContext.User);
+        categories = await ListingService.ListCategoriesAsync();
+        await LoadDetailsAsync();
+
+        if (Input is null && details is not null)
+        {
+            Input = ListingFormInput.FromDetails(details);
+        }
+
+        Input ??= new();
+    }
+
+    private async Task UpdateAsync()
+    {
+        if (currentUser is null)
+        {
+            statusMessage = "Erreur : session invalide.";
+            return;
+        }
+
+        if (!Input.TryBuildCategoryId(out var categoryId))
+        {
+            statusMessage = "Erreur : la catégorie sélectionnée est invalide.";
+            return;
+        }
+
+        var listingId = PrivateListings.Domain.Common.ListingId.From(ListingId);
+        var result = await ListingService.UpdateAsync(new UpdateListingCommand(
+            currentUser.UserProfileId,
+            listingId,
+            categoryId,
+            Input.Title,
+            Input.Description,
+            Input.Type,
+            Input.ApproximateLocation,
+            Input.Price,
+            Input.BuildEventDate(),
+            Input.BuildExpirationDate()));
+
+        if (result.Succeeded)
+        {
+            RedirectManager.RedirectToWithStatus(
+                $"/annonces/{ListingId:D}/modifier",
+                "Annonce enregistrée.",
+                HttpContext);
+            return;
+        }
+
+        statusMessage = FormatResult(result);
+        await LoadDetailsAsync();
+    }
+
+    private async Task LoadDetailsAsync()
+    {
+        if (currentUser is null)
+        {
+            details = null;
+            return;
+        }
+
+        var canModerate = HttpContext.User.IsInRole(PrivateListingsRoleNames.Admin)
+            || HttpContext.User.IsInRole(PrivateListingsRoleNames.Moderator);
+
+        details = await ListingService.GetOwnerDetailsAsync(
+            PrivateListings.Domain.Common.ListingId.From(ListingId),
+            currentUser.UserProfileId,
+            canModerate);
+    }
+
+    private static string FormatResult(ListingOperationResult result)
+        => result.Status == ListingOperationStatus.RateLimited
+            ? "Erreur : trop de tentatives. Réessayez plus tard."
+            : $"Erreur : {string.Join(" ", result.Errors ?? ["la modification n'a pas pu aboutir."])}";
+}

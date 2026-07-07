@@ -50,17 +50,20 @@ Le MVP doit livrer une plateforme utilisable de bout en bout, sans couvrir tous 
 
 ### Annonces
 
-- Création, modification, publication, archivage et suppression logique d'annonce.
-- Catégories MVP :
-  - objet à donner, vendre ou prêter ;
-  - service proposé ;
-  - demande d'aide ;
+- Création, modification par propriétaire, publication, retour en brouillon et suppression logique d'annonce.
+- Types MVP :
+  - je vends ;
+  - je donne ;
+  - je cherche ;
+  - je propose un service ;
   - événement ;
-  - information locale.
-- Titre, description, catégorie, localisation approximative, images, statut et dates.
+  - emploi ou mission ;
+  - projet ou entraide.
+- Titre, description, type, catégorie, localisation approximative, prix facultatif, date d'événement facultative, date d'expiration facultative, images, statut et dates.
 - Validation stricte du contenu : pas de HTML libre.
-- Upload d'images uniquement pour le MVP, avec validation serveur.
-- Recherche textuelle simple et filtres par catégorie, statut et date.
+- Upload d'images uniquement pour le MVP, avec validation serveur et stockage contrôlé.
+- Recherche textuelle simple et filtres par type, catégorie, localisation approximative, prix et date d'événement.
+- Les annonces expirées, suspendues ou supprimées ne sont pas visibles dans la liste publique.
 
 ### Messagerie interne
 

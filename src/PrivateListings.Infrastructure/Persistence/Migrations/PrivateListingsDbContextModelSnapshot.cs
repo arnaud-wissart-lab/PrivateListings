@@ -179,6 +179,11 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("ApproximateLocation")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("approximate_location");
+
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid")
                         .HasColumnName("category_id");
@@ -197,6 +202,10 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("description");
 
+                    b.Property<DateTimeOffset?>("EventDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("event_date");
+
                     b.Property<DateTimeOffset?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
@@ -204,6 +213,11 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_id");
+
+                    b.Property<decimal?>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("price");
 
                     b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("timestamp with time zone")
@@ -251,12 +265,20 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerId", "Status")
                         .HasDatabaseName("ix_listings_owner_status");
 
+                    b.HasIndex("Status", "ExpiresAt")
+                        .HasDatabaseName("ix_listings_status_expires_at");
+
                     b.HasIndex("Status", "PublishedAt")
                         .HasDatabaseName("ix_listings_status_published_at");
+
+                    b.HasIndex("Type", "Status")
+                        .HasDatabaseName("ix_listings_type_status");
 
                     b.ToTable("listings", null, t =>
                         {
                             t.HasCheckConstraint("ck_listings_expires_after_created", "expires_at IS NULL OR expires_at > created_at");
+
+                            t.HasCheckConstraint("ck_listings_price_positive", "price IS NULL OR price >= 0");
 
                             t.HasCheckConstraint("ck_listings_published_after_created", "published_at IS NULL OR published_at >= created_at");
                         });

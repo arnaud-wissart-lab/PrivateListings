@@ -5,9 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using PrivateListings.Application.Authentication;
+using PrivateListings.Application.Listings;
 using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Infrastructure.Persistence;
 using PrivateListings.Infrastructure.Persistence.Seeding;
+using PrivateListings.Infrastructure.Storage;
 
 namespace PrivateListings.Infrastructure;
 
@@ -29,7 +31,11 @@ public static class DependencyInjection
             .Configure<PrivateListingsDemoSeedOptions>(
                 configuration.GetSection(PrivateListingsDemoSeedOptions.SectionName))
             .Configure<PrivateListingsEmailOptions>(
-                configuration.GetSection(PrivateListingsEmailOptions.SectionName));
+                configuration.GetSection(PrivateListingsEmailOptions.SectionName))
+            .Configure<ListingImageOptions>(
+                configuration.GetSection(ListingImageOptions.SectionName))
+            .Configure<ListingRateLimitOptions>(
+                configuration.GetSection(ListingRateLimitOptions.SectionName));
 
         services.TryAddSingleton(TimeProvider.System);
 
@@ -69,6 +75,8 @@ public static class DependencyInjection
         services.AddScoped<PrivateListingsDatabaseInitializer>();
         services.AddScoped<AccountSecurityTokenStore>();
         services.AddScoped<IUserAccountService, IdentityUserAccountService>();
+        services.AddScoped<IListingRepository, EfListingRepository>();
+        services.AddScoped<IListingImageStorage, FileSystemListingImageStorage>();
         services.AddScoped<IEmailSender<PrivateListingsUser>, PrivateListingsIdentityEmailSender>();
         services.AddScoped<IPasswordValidator<PrivateListingsUser>, PrivateListingsPasswordValidator>();
 

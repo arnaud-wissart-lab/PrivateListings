@@ -157,6 +157,17 @@ Les comptes applicatifs sont implémentés via ASP.NET Core Identity dans `Priva
 - Transactions explicites pour les cas d'utilisation sensibles.
 - Les tests d'intégration appliquent les migrations sur PostgreSQL réel via Testcontainers.
 
+### Module annonces MVP
+
+Le module annonces est organisé de la manière suivante :
+
+- `PrivateListings.Domain.Listings` porte les invariants d'annonce, de statut, d'image et de suppression logique.
+- `PrivateListings.Application.Listings` expose les commandes, DTO, règles propriétaire/modération, rate limiting et contrats de stockage.
+- `EfListingRepository` implémente les lectures publiques filtrées, les lectures propriétaire et l'expiration persistée via EF Core.
+- `FileSystemListingImageStorage` stocke les images hors `webroot` et ne reçoit jamais de chemin utilisateur comme chemin final.
+- `PrivateListings.Web` sert les images par endpoint contrôlé et expose les pages Blazor SSR de liste, détail, création, édition et annonces du membre.
+- `PrivateListings.Worker` exécute l'expiration automatique des annonces publiées à fréquence configurable.
+
 ## Authentification et autorisation
 
 Le socle d'authentification est implémenté avec ASP.NET Core Identity, cookies applicatifs et pages Blazor SSR.
@@ -194,10 +205,12 @@ Pour le MVP, seuls les uploads d'images sont autorisés.
 
 - Stockage hors webroot.
 - Renommage serveur systématique.
-- Validation stricte du type MIME, de l'extension, de la taille et des dimensions.
-- Suppression des métadonnées sensibles si possible.
+- Validation stricte du type MIME, de l'extension, de la taille et de la signature fichier.
+- Suppression opportuniste des blocs EXIF, XMP, ICC et texte connus pour JPEG, PNG et WebP.
 - Accès aux images via endpoint contrôlé.
 - Journalisation sans chemin sensible ni donnée personnelle inutile.
+
+Le redimensionnement et la recompression ne sont pas activés dans l'implémentation actuelle afin d'éviter une dépendance d'imagerie imposant une licence de build. Cette capacité pourra être ajoutée avec une bibliothèque compatible avec les contraintes de licence et de déploiement.
 
 ## Observabilité
 

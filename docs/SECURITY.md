@@ -69,10 +69,12 @@ Un rate limiting applicatif en mémoire est appliqué sur les parcours compte su
 - demande de reset password ;
 - reset password.
 
-Un rate limiting devra aussi être ajouté lorsque les modules correspondants seront implémentés :
+Le rate limiting du module contact reste à ajouter lorsque ce parcours sera implémenté.
 
-- contact ;
-- upload d'images.
+Le module annonces applique maintenant un rate limiting applicatif en mémoire sur :
+
+- création d'annonce ;
+- upload d'image d'annonce.
 
 Les limites doivent tenir compte de l'adresse IP, du compte ou de l'email normalisé selon le cas, sans stocker plus de données que nécessaire.
 
@@ -98,13 +100,16 @@ Exigences :
 - validation du type MIME ;
 - validation de la signature réelle du fichier ;
 - limite de taille ;
-- limite de dimensions ;
 - renommage serveur ;
 - stockage hors webroot ;
 - endpoint contrôlé pour servir les fichiers autorisés ;
 - absence de confiance dans le nom de fichier original ;
+- refus explicite des SVG ;
+- suppression opportuniste des métadonnées connues lorsque le format le permet ;
 - nettoyage des fichiers orphelins ;
 - journalisation sans chemin sensible.
+
+Le redimensionnement, la recompression et la validation de dimensions ne sont pas activés dans l'implémentation actuelle, faute de dépendance d'imagerie compatible avec les contraintes de licence et de build. La limite de taille reste la barrière configurable du MVP.
 
 ## Messagerie interne
 
@@ -211,7 +216,7 @@ Le journal d'audit ne doit pas stocker de secrets. Les métadonnées techniques 
 - Rate limiting : login, inscription, reset et contact.
 - Autorisations : membre, modérateur, administrateur.
 - CSRF sur actions d'écriture.
-- Upload : extension, MIME, signature, taille et dimensions.
+- Upload : extension, MIME, signature, taille, refus SVG et absence de chemin utilisateur.
 - Absence de HTML libre rendu.
 - Non-divulgation d'existence de compte.
 
