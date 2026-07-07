@@ -17,20 +17,21 @@ PrivateListings manipule des comptes, annonces privées, messages internes et ac
 ## Authentification
 
 - Aucun mot de passe ne doit être envoyé par email.
-- Les mots de passe doivent être hachés avec un mécanisme robuste fourni par ASP.NET Core Identity ou équivalent validé.
+- Les mots de passe sont hachés par ASP.NET Core Identity.
+- La politique actuelle accepte les mots de passe longs de gestionnaire de mots de passe : minimum 12 caractères, maximum 256, sans obligation artificielle de chiffres, majuscules ou symboles.
 - Activation de compte par lien temporaire à usage unique.
 - Réinitialisation de mot de passe par lien temporaire à usage unique.
-- Les jetons temporaires doivent être :
-  - générés avec une source cryptographiquement sûre ;
-  - stockés sous forme hachée ;
-  - limités dans le temps ;
+- Les jetons temporaires sont :
+  - générés par les fournisseurs de jetons Identity ;
+  - stockés sous forme hachée dans `account_security_tokens` ;
+  - limités à 2 heures ;
   - invalidés après usage ;
-  - invalidés lors d'un changement sensible de compte si pertinent.
+  - invalidés par rotation lorsqu'un nouveau lien du même type est généré.
 - Les messages d'erreur de connexion ne doivent pas révéler si un email existe.
 
 ## Sessions et cookies
 
-- Cookies d'authentification `Secure`, `HttpOnly` et `SameSite`.
+- Cookies d'authentification `Secure`, `HttpOnly` et `SameSite=Lax`.
 - Durée de session raisonnable et configurable.
 - Renouvellement contrôlé des sessions.
 - Invalidation de session après changement de mot de passe.
@@ -60,17 +61,22 @@ Exemples :
 
 ## Rate limiting
 
-Un rate limiting doit être appliqué au minimum sur :
+Un rate limiting applicatif en mémoire est appliqué sur les parcours compte suivants :
 
 - connexion ;
 - inscription ;
 - activation de compte ;
 - demande de reset password ;
+- reset password.
+
+Un rate limiting devra aussi être ajouté lorsque les modules correspondants seront implémentés :
+
 - contact ;
-- endpoints de validation de jetons si exposés ;
 - upload d'images.
 
 Les limites doivent tenir compte de l'adresse IP, du compte ou de l'email normalisé selon le cas, sans stocker plus de données que nécessaire.
+
+Le rate limiting actuel hache la clé interne composée de l'action, de l'identifiant normalisé et de l'adresse IP. Une implémentation distribuée restera nécessaire avant un déploiement multi-instance.
 
 ## Validation des entrées
 
@@ -127,10 +133,15 @@ Un journal d'audit doit tracer les actions sensibles.
 
 Actions concernées :
 
+- connexion réussie ;
+- connexion échouée ;
+- inscription ;
 - activation de compte ;
 - demande et usage de reset password ;
 - changement de mot de passe ;
+- changement d'email ;
 - changement de rôle ;
+- demande de suppression de compte ;
 - suspension ou réactivation de compte ;
 - suppression ou anonymisation ;
 - action de modération ;
@@ -147,7 +158,7 @@ Chaque entrée d'audit doit inclure au minimum :
 - motif lorsque requis ;
 - identifiant de corrélation.
 
-Le journal d'audit ne doit pas stocker de secrets.
+Le journal d'audit ne doit pas stocker de secrets. Les métadonnées techniques actuellement ajoutées aux événements compte utilisent des hachages pour l'email, l'adresse IP et le user-agent.
 
 ## Administration et modération
 
@@ -163,6 +174,7 @@ Le journal d'audit ne doit pas stocker de secrets.
 - Les liens d'activation et de reset doivent expirer rapidement.
 - Les emails doivent rester sobres et ne pas révéler d'informations sensibles.
 - Les liens doivent pointer vers le domaine configuré de l'application.
+- En développement Aspire, MailPit reçoit les emails via SMTP ; le lien complet n'est pas écrit dans les logs applicatifs.
 
 ## Mode démo
 

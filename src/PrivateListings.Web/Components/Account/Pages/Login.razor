@@ -1,0 +1,103 @@
+@page "/login"
+@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using PrivateListings.Web.Components.Account
+
+@inject IUserAccountService AccountService
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Connexion</PageTitle>
+
+<section class="account-page">
+    <div class="account-panel">
+        <h1>Connexion</h1>
+        <p class="account-muted">Accédez à vos annonces privées et à vos échanges locaux.</p>
+
+        <StatusMessage Message="@statusMessage" />
+
+        <EditForm Model="Input" method="post" FormName="login" OnValidSubmit="LoginAsync" class="account-form">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="account-validation" role="alert" />
+
+            <label class="field-label" for="login-email">Email</label>
+            <InputText id="login-email" @bind-Value="Input.Email" class="field-input" autocomplete="username" />
+            <ValidationMessage For="() => Input.Email" class="field-validation" />
+
+            <label class="field-label" for="login-password">Mot de passe</label>
+            <InputText id="login-password" type="password" @bind-Value="Input.Password" class="field-input" autocomplete="current-password" />
+            <ValidationMessage For="() => Input.Password" class="field-validation" />
+
+            <label class="check-line">
+                <InputCheckbox @bind-Value="Input.RememberMe" />
+                <span>Rester connecté</span>
+            </label>
+
+            <button type="submit" class="primary-button">Se connecter</button>
+        </EditForm>
+
+        <div class="account-links">
+            <a href="/forgot-password">Mot de passe oublié</a>
+            <a href="/register">Créer un compte</a>
+        </div>
+    </div>
+</section>
+
+@code {
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+    }
+
+    private async Task LoginAsync()
+    {
+        var result = await AccountService.LoginAsync(new LoginAccountCommand(
+            Input.Email,
+            Input.Password,
+            Input.RememberMe,
+            BuildRequestContext()));
+
+        if (result.Succeeded)
+        {
+            RedirectManager.RedirectTo(ReturnUrl);
+            return;
+        }
+
+        statusMessage = result.Status switch
+        {
+            AccountOperationStatus.RateLimited => "Erreur : trop de tentatives. Réessayez plus tard.",
+            AccountOperationStatus.LockedOut => "Erreur : le compte est temporairement verrouillé.",
+            AccountOperationStatus.RequiresEmailConfirmation => "Erreur : confirmez votre email avant de vous connecter.",
+            _ => "Erreur : identifiants invalides."
+        };
+    }
+
+    private AccountRequestContext BuildRequestContext()
+        => new(
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            HttpContext.Request.Headers["User-Agent"].ToString());
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "L'email est obligatoire.")]
+        [EmailAddress(ErrorMessage = "L'email est invalide.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Le mot de passe est obligatoire.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

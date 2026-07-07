@@ -1,0 +1,110 @@
+@page "/register"
+@page "/Account/Register"
+
+@using System.ComponentModel.DataAnnotations
+@using PrivateListings.Web.Components.Account
+
+@inject NavigationManager NavigationManager
+@inject IUserAccountService AccountService
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Inscription</PageTitle>
+
+<section class="account-page">
+    <div class="account-panel">
+        <h1>Inscription</h1>
+        <p class="account-muted">Créez un compte avec votre email et un mot de passe compatible avec un gestionnaire de mots de passe.</p>
+
+        <StatusMessage Message="@statusMessage" />
+
+        <EditForm Model="Input" method="post" FormName="register" OnValidSubmit="RegisterAsync" class="account-form">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="account-validation" role="alert" />
+
+            <label class="field-label" for="register-name">Nom affiché</label>
+            <InputText id="register-name" @bind-Value="Input.DisplayName" class="field-input" autocomplete="name" />
+            <ValidationMessage For="() => Input.DisplayName" class="field-validation" />
+
+            <label class="field-label" for="register-email">Email</label>
+            <InputText id="register-email" @bind-Value="Input.Email" class="field-input" autocomplete="username" />
+            <ValidationMessage For="() => Input.Email" class="field-validation" />
+
+            <label class="field-label" for="register-password">Mot de passe</label>
+            <InputText id="register-password" type="password" @bind-Value="Input.Password" class="field-input" autocomplete="new-password" />
+            <ValidationMessage For="() => Input.Password" class="field-validation" />
+
+            <label class="field-label" for="register-confirm-password">Confirmation</label>
+            <InputText id="register-confirm-password" type="password" @bind-Value="Input.ConfirmPassword" class="field-input" autocomplete="new-password" />
+            <ValidationMessage For="() => Input.ConfirmPassword" class="field-validation" />
+
+            <button type="submit" class="primary-button">Créer le compte</button>
+        </EditForm>
+
+        <div class="account-links">
+            <a href="/login">J'ai déjà un compte</a>
+        </div>
+    </div>
+</section>
+
+@code {
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+    }
+
+    private async Task RegisterAsync()
+    {
+        var result = await AccountService.RegisterAsync(new RegisterAccountCommand(
+            Input.Email,
+            Input.DisplayName,
+            Input.Password,
+            NavigationManager.ToAbsoluteUri("confirm-email").AbsoluteUri,
+            BuildRequestContext()));
+
+        if (result.Status == AccountOperationStatus.RequiresEmailConfirmation)
+        {
+            RedirectManager.RedirectToWithStatus(
+                "/login",
+                "Compte créé. Vérifiez votre email pour confirmer l'adresse.",
+                HttpContext);
+            return;
+        }
+
+        statusMessage = result.Status == AccountOperationStatus.RateLimited
+            ? "Erreur : trop de tentatives. Réessayez plus tard."
+            : $"Erreur : {string.Join(" ", result.Errors ?? ["L'inscription n'a pas pu aboutir."])}";
+    }
+
+    private AccountRequestContext BuildRequestContext()
+        => new(
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            HttpContext.Request.Headers["User-Agent"].ToString());
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Le nom affiché est obligatoire.")]
+        [StringLength(80, ErrorMessage = "Le nom affiché est trop long.")]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "L'email est obligatoire.")]
+        [EmailAddress(ErrorMessage = "L'email est invalide.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Le mot de passe est obligatoire.")]
+        [StringLength(256, MinimumLength = 12, ErrorMessage = "Le mot de passe doit contenir entre 12 et 256 caractères.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [DataType(DataType.Password)]
+        [Compare(nameof(Password), ErrorMessage = "Les mots de passe ne correspondent pas.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

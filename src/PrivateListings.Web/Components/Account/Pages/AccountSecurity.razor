@@ -1,0 +1,246 @@
+@page "/account-security"
+@page "/Account/AccountSecurity"
+@attribute [Authorize]
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using PrivateListings.Infrastructure.Identity
+@using PrivateListings.Web.Components.Account
+
+@inject IUserAccountService AccountService
+@inject UserManager<PrivateListingsUser> UserManager
+
+<PageTitle>Sécurité du compte</PageTitle>
+
+<section class="account-page account-page-wide">
+    <div class="account-panel account-panel-wide">
+        <h1>Sécurité du compte</h1>
+
+        <StatusMessage Message="@statusMessage" />
+
+        @if (overview is null)
+        {
+            <p class="account-muted">Compte introuvable.</p>
+        }
+        else
+        {
+            <div class="security-summary">
+                <div>
+                    <span class="summary-label">Email</span>
+                    <strong>@overview.Email</strong>
+                </div>
+                <div>
+                    <span class="summary-label">Confirmation</span>
+                    <strong>@(overview.EmailConfirmed ? "Confirmé" : "En attente")</strong>
+                </div>
+                <div>
+                    <span class="summary-label">MFA</span>
+                    <strong>@(overview.TwoFactorEnabled ? "Activée" : overview.MfaRequiredForAdmin ? "Requise pour admin" : "Non activée")</strong>
+                </div>
+            </div>
+
+            <div class="security-grid">
+                <section class="security-section">
+                    <h2>Mot de passe</h2>
+                    <EditForm Model="PasswordInput" method="post" FormName="change-password" OnValidSubmit="ChangePasswordAsync" class="account-form">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="account-validation" role="alert" />
+
+                        <label class="field-label" for="current-password">Mot de passe actuel</label>
+                        <InputText id="current-password" type="password" @bind-Value="PasswordInput.CurrentPassword" class="field-input" autocomplete="current-password" />
+                        <ValidationMessage For="() => PasswordInput.CurrentPassword" class="field-validation" />
+
+                        <label class="field-label" for="new-password">Nouveau mot de passe</label>
+                        <InputText id="new-password" type="password" @bind-Value="PasswordInput.NewPassword" class="field-input" autocomplete="new-password" />
+                        <ValidationMessage For="() => PasswordInput.NewPassword" class="field-validation" />
+
+                        <label class="field-label" for="confirm-new-password">Confirmation</label>
+                        <InputText id="confirm-new-password" type="password" @bind-Value="PasswordInput.ConfirmPassword" class="field-input" autocomplete="new-password" />
+                        <ValidationMessage For="() => PasswordInput.ConfirmPassword" class="field-validation" />
+
+                        <button type="submit" class="primary-button">Changer le mot de passe</button>
+                    </EditForm>
+                </section>
+
+                <section class="security-section">
+                    <h2>Email</h2>
+                    <EditForm Model="EmailInput" method="post" FormName="change-email" OnValidSubmit="ChangeEmailAsync" class="account-form">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="account-validation" role="alert" />
+
+                        <label class="field-label" for="new-email">Nouvel email</label>
+                        <InputText id="new-email" @bind-Value="EmailInput.NewEmail" class="field-input" autocomplete="email" />
+                        <ValidationMessage For="() => EmailInput.NewEmail" class="field-validation" />
+
+                        <label class="field-label" for="email-current-password">Mot de passe actuel</label>
+                        <InputText id="email-current-password" type="password" @bind-Value="EmailInput.CurrentPassword" class="field-input" autocomplete="current-password" />
+                        <ValidationMessage For="() => EmailInput.CurrentPassword" class="field-validation" />
+
+                        <button type="submit" class="primary-button">Changer l'email</button>
+                    </EditForm>
+                </section>
+
+                <section class="security-section security-section-danger">
+                    <h2>Suppression</h2>
+                    <EditForm Model="DeletionInput" method="post" FormName="request-deletion" OnValidSubmit="RequestDeletionAsync" class="account-form">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="account-validation" role="alert" />
+
+                        <label class="field-label" for="deletion-current-password">Mot de passe actuel</label>
+                        <InputText id="deletion-current-password" type="password" @bind-Value="DeletionInput.CurrentPassword" class="field-input" autocomplete="current-password" />
+                        <ValidationMessage For="() => DeletionInput.CurrentPassword" class="field-validation" />
+
+                        <button type="submit" class="danger-button">Demander la suppression</button>
+                    </EditForm>
+                </section>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private AccountSecurityOverview? overview;
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "change-password")]
+    private PasswordInputModel PasswordInput { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "change-email")]
+    private EmailInputModel EmailInput { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "request-deletion")]
+    private DeletionInputModel DeletionInput { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PasswordInput ??= new();
+        EmailInput ??= new();
+        DeletionInput ??= new();
+
+        await LoadOverviewAsync();
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            statusMessage = "Erreur : session invalide.";
+            return;
+        }
+
+        var result = await AccountService.ChangePasswordAsync(new ChangePasswordCommand(
+            userId.Value,
+            PasswordInput.CurrentPassword,
+            PasswordInput.NewPassword,
+            BuildRequestContext()));
+
+        statusMessage = result.Succeeded
+            ? "Mot de passe modifié."
+            : $"Erreur : {string.Join(" ", result.Errors ?? ["la modification n'a pas pu aboutir."])}";
+
+        PasswordInput = new();
+        await LoadOverviewAsync();
+    }
+
+    private async Task ChangeEmailAsync()
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            statusMessage = "Erreur : session invalide.";
+            return;
+        }
+
+        var result = await AccountService.ChangeEmailAsync(new ChangeEmailCommand(
+            userId.Value,
+            EmailInput.NewEmail,
+            EmailInput.CurrentPassword,
+            BuildRequestContext()));
+
+        statusMessage = result.Succeeded
+            ? "Email modifié."
+            : $"Erreur : {string.Join(" ", result.Errors ?? ["la modification n'a pas pu aboutir."])}";
+
+        EmailInput = new();
+        await LoadOverviewAsync();
+    }
+
+    private async Task RequestDeletionAsync()
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            statusMessage = "Erreur : session invalide.";
+            return;
+        }
+
+        var result = await AccountService.RequestAccountDeletionAsync(new RequestAccountDeletionCommand(
+            userId.Value,
+            DeletionInput.CurrentPassword,
+            BuildRequestContext()));
+
+        statusMessage = result.Succeeded
+            ? "Demande de suppression enregistrée."
+            : $"Erreur : {string.Join(" ", result.Errors ?? ["la demande n'a pas pu aboutir."])}";
+
+        DeletionInput = new();
+        await LoadOverviewAsync();
+    }
+
+    private async Task LoadOverviewAsync()
+    {
+        var userId = GetCurrentUserId();
+        overview = userId is null
+            ? null
+            : await AccountService.GetSecurityOverviewAsync(userId.Value);
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var value = UserManager.GetUserId(HttpContext.User);
+        return Guid.TryParse(value, out var userId) ? userId : null;
+    }
+
+    private AccountRequestContext BuildRequestContext()
+        => new(
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            HttpContext.Request.Headers["User-Agent"].ToString());
+
+    private sealed class PasswordInputModel
+    {
+        [Required(ErrorMessage = "Le mot de passe actuel est obligatoire.")]
+        [DataType(DataType.Password)]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Le nouveau mot de passe est obligatoire.")]
+        [StringLength(256, MinimumLength = 12, ErrorMessage = "Le mot de passe doit contenir entre 12 et 256 caractères.")]
+        [DataType(DataType.Password)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [DataType(DataType.Password)]
+        [Compare(nameof(NewPassword), ErrorMessage = "Les mots de passe ne correspondent pas.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    private sealed class EmailInputModel
+    {
+        [Required(ErrorMessage = "Le nouvel email est obligatoire.")]
+        [EmailAddress(ErrorMessage = "L'email est invalide.")]
+        public string NewEmail { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Le mot de passe actuel est obligatoire.")]
+        [DataType(DataType.Password)]
+        public string CurrentPassword { get; set; } = string.Empty;
+    }
+
+    private sealed class DeletionInputModel
+    {
+        [Required(ErrorMessage = "Le mot de passe actuel est obligatoire.")]
+        [DataType(DataType.Password)]
+        public string CurrentPassword { get; set; } = string.Empty;
+    }
+}

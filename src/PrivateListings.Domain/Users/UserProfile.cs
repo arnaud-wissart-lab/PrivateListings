@@ -66,6 +66,13 @@ public sealed class UserProfile
         return consentRecord;
     }
 
+    public void ChangeEmailAddress(EmailAddress emailAddress)
+    {
+        EnsureNotAnonymized();
+
+        EmailAddress = emailAddress;
+    }
+
     public void Anonymize(DateTimeOffset anonymizedAt)
     {
         if (IsAnonymized)

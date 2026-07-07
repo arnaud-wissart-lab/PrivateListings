@@ -1,4 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using PrivateListings.Application;
+using PrivateListings.Infrastructure;
+using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
 
@@ -27,6 +34,38 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
             .Options;
 
         return new PrivateListingsDbContext(options);
+    }
+
+    public ServiceProvider CreateServiceProvider(
+        IHostEnvironment? environment = null,
+        Action<IServiceCollection>? configureServices = null)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:privatelistingsdb"] = _container.GetConnectionString(),
+                ["PrivateListings:Persistence:ConnectionName"] = "privatelistingsdb",
+                ["PrivateListings:Persistence:ApplyMigrationsOnStartup"] = "false",
+                ["PrivateListings:ReferenceData:SeedInitialCategories"] = "false",
+                ["PrivateListings:DemoSeed:Enabled"] = "false"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services
+            .AddPrivateListingsApplication()
+            .AddPrivateListingsInfrastructure(configuration, environment ?? new TestHostEnvironment("Tests"));
+        services.AddHttpContextAccessor();
+        services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = IdentityConstants.ApplicationScheme;
+            options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+        }).AddIdentityCookies();
+        services.AddLogging();
+
+        configureServices?.Invoke(services);
+
+        return services.BuildServiceProvider();
     }
 
     public async Task ResetDatabaseAsync(CancellationToken cancellationToken = default)

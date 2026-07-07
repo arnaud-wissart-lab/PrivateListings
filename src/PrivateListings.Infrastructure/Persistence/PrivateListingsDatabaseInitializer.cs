@@ -8,6 +8,7 @@ namespace PrivateListings.Infrastructure.Persistence;
 public sealed class PrivateListingsDatabaseInitializer(
     PrivateListingsDbContext dbContext,
     PrivateListingsReferenceDataSeeder referenceDataSeeder,
+    PrivateListingsIdentitySeeder identitySeeder,
     PrivateListingsDemoDataSeeder demoDataSeeder,
     IHostEnvironment environment,
     IOptions<PrivateListingsPersistenceOptions> persistenceOptions,
@@ -18,6 +19,7 @@ public sealed class PrivateListingsDatabaseInitializer(
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(referenceDataSeeder);
+        ArgumentNullException.ThrowIfNull(identitySeeder);
         ArgumentNullException.ThrowIfNull(demoDataSeeder);
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(persistenceOptions);
@@ -33,6 +35,8 @@ public sealed class PrivateListingsDatabaseInitializer(
         {
             await referenceDataSeeder.SeedAsync(cancellationToken).ConfigureAwait(false);
         }
+
+        await identitySeeder.SeedAsync(cancellationToken).ConfigureAwait(false);
 
         if (PrivateListingsDemoSeedPolicy.ShouldRun(environment, demoSeedOptions.Value))
         {

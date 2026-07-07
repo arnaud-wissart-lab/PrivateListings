@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using PrivateListings.Domain.Auditing;
@@ -7,12 +8,15 @@ using PrivateListings.Domain.Moderation;
 using PrivateListings.Domain.Privacy;
 using PrivateListings.Domain.Recommendations;
 using PrivateListings.Domain.Users;
+using PrivateListings.Infrastructure.Identity;
 
 namespace PrivateListings.Infrastructure.Persistence.Seeding;
 
 public sealed class PrivateListingsDemoDataSeeder(
     PrivateListingsDbContext dbContext,
-    PrivateListingsReferenceDataSeeder referenceDataSeeder)
+    PrivateListingsReferenceDataSeeder referenceDataSeeder,
+    PrivateListingsIdentitySeeder identitySeeder,
+    UserManager<PrivateListingsUser> userManager)
 {
     private static readonly DateTimeOffset SeedDate = new(2026, 7, 7, 8, 0, 0, TimeSpan.Zero);
 
@@ -29,9 +33,11 @@ public sealed class PrivateListingsDemoDataSeeder(
         ValidateAccountOptions(options);
 
         await referenceDataSeeder.SeedAsync(cancellationToken).ConfigureAwait(false);
+        await identitySeeder.SeedAsync(cancellationToken).ConfigureAwait(false);
 
         if (await dbContext.DemoUserAccounts.AnyAsync(cancellationToken).ConfigureAwait(false))
         {
+            await SeedIdentityAccountsAsync(options, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -61,6 +67,8 @@ public sealed class PrivateListingsDemoDataSeeder(
         await dbContext.AuditLogs.AddRangeAsync(auditLogs, cancellationToken).ConfigureAwait(false);
 
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await SeedIdentityAccountsAsync(options, cancellationToken).ConfigureAwait(false);
     }
 
     private static void ValidateAccountOptions(PrivateListingsDemoSeedOptions options)
@@ -119,6 +127,82 @@ public sealed class PrivateListingsDemoDataSeeder(
             DemoUserAccount.Create(users[1].Id, options.Accounts.Moderator.Email, DemoUserRole.Moderator, options.Accounts.Moderator.Password, SeedDate),
             DemoUserAccount.Create(users[2].Id, options.Accounts.Member.Email, DemoUserRole.Member, options.Accounts.Member.Password, SeedDate)
         ];
+
+    private async Task SeedIdentityAccountsAsync(
+        PrivateListingsDemoSeedOptions options,
+        CancellationToken cancellationToken)
+    {
+        var accounts = await dbContext.DemoUserAccounts
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var account in accounts)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (await userManager.FindByEmailAsync(account.Email).ConfigureAwait(false) is not null)
+            {
+                continue;
+            }
+
+            var profile = await dbContext.UserProfiles
+                .SingleAsync(userProfile => userProfile.Id == account.UserProfileId, cancellationToken)
+                .ConfigureAwait(false);
+
+            var identityUser = new PrivateListingsUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = account.Email,
+                Email = account.Email,
+                EmailConfirmed = true,
+                UserProfileId = account.UserProfileId,
+                DisplayName = profile.DisplayName,
+                CreatedAt = account.CreatedAt,
+                MfaRequiredForAdmin = account.Role == DemoUserRole.Admin
+            };
+
+            var createResult = await userManager
+                .CreateAsync(identityUser, GetPassword(options, account.Role))
+                .ConfigureAwait(false);
+
+            if (!createResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Le compte Identity démo '{account.Email}' n'a pas pu être créé : {FormatIdentityErrors(createResult)}");
+            }
+
+            var roleResult = await userManager
+                .AddToRoleAsync(identityUser, GetRoleName(account.Role))
+                .ConfigureAwait(false);
+
+            if (!roleResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Le rôle du compte Identity démo '{account.Email}' n'a pas pu être créé : {FormatIdentityErrors(roleResult)}");
+            }
+        }
+    }
+
+    private static string GetPassword(PrivateListingsDemoSeedOptions options, DemoUserRole role)
+        => role switch
+        {
+            DemoUserRole.Admin => options.Accounts.Admin.Password,
+            DemoUserRole.Moderator => options.Accounts.Moderator.Password,
+            DemoUserRole.Member => options.Accounts.Member.Password,
+            _ => throw new InvalidOperationException("Le rôle démo est inconnu.")
+        };
+
+    private static string GetRoleName(DemoUserRole role)
+        => role switch
+        {
+            DemoUserRole.Admin => PrivateListingsRoleNames.Admin,
+            DemoUserRole.Moderator => PrivateListingsRoleNames.Moderator,
+            DemoUserRole.Member => PrivateListingsRoleNames.Member,
+            _ => throw new InvalidOperationException("Le rôle démo est inconnu.")
+        };
+
+    private static string FormatIdentityErrors(IdentityResult result)
+        => string.Join(", ", result.Errors.Select(error => error.Description));
 
     private static List<Listing> CreateListings(
         List<UserProfile> users,

@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using PrivateListings.Application.Authentication;
+using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Infrastructure.Persistence;
 using PrivateListings.Infrastructure.Persistence.Seeding;
 
@@ -23,7 +27,11 @@ public static class DependencyInjection
             .Configure<PrivateListingsReferenceDataOptions>(
                 configuration.GetSection(PrivateListingsReferenceDataOptions.SectionName))
             .Configure<PrivateListingsDemoSeedOptions>(
-                configuration.GetSection(PrivateListingsDemoSeedOptions.SectionName));
+                configuration.GetSection(PrivateListingsDemoSeedOptions.SectionName))
+            .Configure<PrivateListingsEmailOptions>(
+                configuration.GetSection(PrivateListingsEmailOptions.SectionName));
+
+        services.TryAddSingleton(TimeProvider.System);
 
         if (environment is not null)
         {
@@ -56,8 +64,38 @@ public static class DependencyInjection
                 }));
 
         services.AddScoped<PrivateListingsReferenceDataSeeder>();
+        services.AddScoped<PrivateListingsIdentitySeeder>();
         services.AddScoped<PrivateListingsDemoDataSeeder>();
         services.AddScoped<PrivateListingsDatabaseInitializer>();
+        services.AddScoped<AccountSecurityTokenStore>();
+        services.AddScoped<IUserAccountService, IdentityUserAccountService>();
+        services.AddScoped<IEmailSender<PrivateListingsUser>, PrivateListingsIdentityEmailSender>();
+        services.AddScoped<IPasswordValidator<PrivateListingsUser>, PrivateListingsPasswordValidator>();
+
+        services.Configure<DataProtectionTokenProviderOptions>(options =>
+        {
+            options.TokenLifespan = TimeSpan.FromHours(2);
+        });
+
+        services.AddIdentityCore<PrivateListingsUser>(options =>
+            {
+                options.SignIn.RequireConfirmedAccount = true;
+                options.SignIn.RequireConfirmedEmail = true;
+                options.User.RequireUniqueEmail = true;
+                options.Password.RequiredLength = AccountPasswordPolicyOptions.DefaultRequiredLength;
+                options.Password.RequiredUniqueChars = 1;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+            })
+            .AddRoles<PrivateListingsRole>()
+            .AddEntityFrameworkStores<PrivateListingsDbContext>()
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
 
         return services;
     }

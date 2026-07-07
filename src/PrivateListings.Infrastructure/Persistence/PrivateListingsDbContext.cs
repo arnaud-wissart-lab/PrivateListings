@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PrivateListings.Domain.Auditing;
 using PrivateListings.Domain.Listings;
@@ -6,11 +7,14 @@ using PrivateListings.Domain.Moderation;
 using PrivateListings.Domain.Privacy;
 using PrivateListings.Domain.Recommendations;
 using PrivateListings.Domain.Users;
+using PrivateListings.Infrastructure.Identity;
+using PrivateListings.Infrastructure.Persistence.Configurations;
 using PrivateListings.Infrastructure.Persistence.Seeding;
 
 namespace PrivateListings.Infrastructure.Persistence;
 
-public sealed class PrivateListingsDbContext(DbContextOptions<PrivateListingsDbContext> options) : DbContext(options)
+public sealed class PrivateListingsDbContext(DbContextOptions<PrivateListingsDbContext> options)
+    : IdentityDbContext<PrivateListingsUser, PrivateListingsRole, Guid>(options)
 {
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
@@ -36,15 +40,19 @@ public sealed class PrivateListingsDbContext(DbContextOptions<PrivateListingsDbC
 
     public DbSet<DemoUserAccount> DemoUserAccounts => Set<DemoUserAccount>();
 
+    public DbSet<AccountSecurityToken> AccountSecurityTokens => Set<AccountSecurityToken>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Properties<DateTimeOffset>().HaveColumnType("timestamp with time zone");
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(modelBuilder);
+        ArgumentNullException.ThrowIfNull(builder);
 
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(PrivateListingsDbContext).Assembly);
+        base.OnModelCreating(builder);
+        builder.ApplyConfigurationsFromAssembly(typeof(PrivateListingsDbContext).Assembly);
+        builder.ConfigurePrivateListingsIdentity();
     }
 }

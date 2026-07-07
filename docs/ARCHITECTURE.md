@@ -107,9 +107,10 @@ Implémentations techniques :
 - configurations de mapping ;
 - migrations ;
 - stockage des images hors webroot ;
-- services de courrier électronique ;
+- intégration ASP.NET Core Identity ;
+- services de courrier électronique SMTP ;
 - horloge système ;
-- génération de jetons temporaires ;
+- jetons temporaires hachés et consommables une seule fois ;
 - journal d'audit ;
 - intégrations externes éventuelles.
 
@@ -142,11 +143,11 @@ Le projet `PrivateListings.Domain` porte les premières entités métier sans d�
 - `ConsentRecord` : consentement historisé pour un profil.
 - `DataExportRequest` : demande d'export des données personnelles.
 
-Les comptes applicatifs, jetons temporaires et décisions de modération détaillées restent à concevoir dans les couches appropriées.
+Les comptes applicatifs sont implémentés via ASP.NET Core Identity dans `PrivateListings.Infrastructure`, avec un lien obligatoire vers `UserProfile`. Les jetons de confirmation email et de reset password sont stockés sous forme hachée dans `account_security_tokens` afin de contrôler leur expiration et leur usage unique.
 
 ### EF Core
 
-- La couche `PrivateListings.Infrastructure` contient `PrivateListingsDbContext`, les mappings explicites par entité et la migration initiale PostgreSQL.
+- La couche `PrivateListings.Infrastructure` contient `PrivateListingsDbContext`, les mappings explicites par entité, les tables Identity et les migrations PostgreSQL.
 - Les identifiants typés du domaine sont convertis en colonnes `uuid`.
 - Les conversations stockent les participants dans une colonne PostgreSQL `uuid[]` indexée en GIN.
 - Les cibles de signalement et sujets d'audit sont persistés sous forme de clés normalisées indexées.
@@ -158,15 +159,20 @@ Les comptes applicatifs, jetons temporaires et décisions de modération détail
 
 ## Authentification et autorisation
 
-Le MVP utilisera une authentification par cookies ASP.NET Core.
+Le socle d'authentification est implémenté avec ASP.NET Core Identity, cookies applicatifs et pages Blazor SSR.
 
-- Cookies `Secure`, `HttpOnly` et `SameSite`.
-- Activation de compte par lien temporaire à usage unique.
-- Reset password par lien temporaire à usage unique.
-- Aucun mot de passe envoyé par email.
-- Rate limiting sur login, inscription, reset password et contact.
-- Rôles : membre, modérateur, administrateur.
-- Politiques d'autorisation pour les actions sensibles.
+- `PrivateListingsUser` porte l'identité technique et référence un `UserProfile`.
+- Cookies `Secure`, `HttpOnly`, `SameSite=Lax`, avec renouvellement glissant.
+- Inscription email + mot de passe défini par l'utilisateur.
+- Confirmation email par lien temporaire haché et consommable une seule fois.
+- Reset password par lien temporaire haché et consommable une seule fois.
+- Aucun mot de passe provisoire n'est généré ni envoyé par email.
+- Politique de mot de passe pragmatique : longueur minimale 12, longueur maximale 256, pas d'obligation artificielle de chiffres ou symboles.
+- Rate limiting applicatif sur login, inscription, demande de reset, reset et confirmation email.
+- Lockout Identity après échecs de connexion répétés.
+- Rôles Identity : membre, modérateur, administrateur.
+- MFA préparée pour les administrateurs via le modèle Identity et l'indicateur `MfaRequiredForAdmin`; l'activation complète du parcours MFA reste à finaliser.
+- Actions sensibles tracées dans `AuditLog` sans mot de passe ni token en clair.
 
 ## UI et Metronic
 
@@ -256,10 +262,9 @@ Les images applicatives seront publiées dans GHCR.
 - `Staging` : proche production, utilisé pour valider migrations et déploiement.
 - `Production` : Docker Compose sur mini-PC GEEKOM, migrations et seed démo désactivés par défaut.
 
-## Décisions à confirmer avant scaffold
+## Décisions restantes
 
-- Modèle exact d'identité : ASP.NET Core Identity complet ou modèle applicatif plus ciblé.
-- Niveau d'interactivité Blazor : SSR, Interactive Server, Interactive WebAssembly ou mixte.
+- Niveau d'interactivité Blazor à long terme : SSR, Interactive Server, Interactive WebAssembly ou mixte.
 - Utilisation effective de Metronic 9.5.0.
 - Reverse proxy cible pour production.
 - Stratégie de sauvegarde PostgreSQL et images.

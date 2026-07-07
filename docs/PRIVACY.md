@@ -60,6 +60,7 @@ Ce document fixe les principes initiaux. Il ne remplace pas une analyse juridiqu
 - Cible.
 - Date et résultat.
 - Identifiant de corrélation.
+- Hachages techniques limités pour certains événements de sécurité compte.
 
 ## Minimisation
 
@@ -70,6 +71,8 @@ Ce document fixe les principes initiaux. Il ne remplace pas une analyse juridiqu
 - Ne pas conserver les noms originaux de fichiers comme source de vérité.
 - Ne pas stocker les jetons temporaires en clair.
 - Ne pas exposer l'email d'un membre aux autres membres sans nécessité produit explicite.
+- Ne pas stocker les mots de passe en clair ; seuls les hachages Identity sont persistés.
+- Ne pas stocker les emails saisis dans les tentatives sensibles lorsqu'un hachage suffit à l'audit.
 
 ## Consentement et information
 

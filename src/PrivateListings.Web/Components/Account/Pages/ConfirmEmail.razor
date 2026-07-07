@@ -1,0 +1,54 @@
+@page "/confirm-email"
+@page "/Account/ConfirmEmail"
+
+@using PrivateListings.Web.Components.Account
+
+@inject IUserAccountService AccountService
+
+<PageTitle>Confirmation email</PageTitle>
+
+<section class="account-page">
+    <div class="account-panel">
+        <h1>Confirmation email</h1>
+        <StatusMessage Message="@statusMessage" />
+        <div class="account-links">
+            <a href="/login">Aller à la connexion</a>
+        </div>
+    </div>
+</section>
+
+@code {
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private Guid? UserId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "code")]
+    private string? Code { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId is null || string.IsNullOrWhiteSpace(Code))
+        {
+            statusMessage = "Erreur : lien de confirmation invalide.";
+            return;
+        }
+
+        var result = await AccountService.ConfirmEmailAsync(new ConfirmEmailCommand(
+            UserId.Value,
+            Code,
+            BuildRequestContext()));
+
+        statusMessage = result.Succeeded
+            ? "Email confirmé. Vous pouvez vous connecter."
+            : "Erreur : lien de confirmation invalide ou expiré.";
+    }
+
+    private AccountRequestContext BuildRequestContext()
+        => new(
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            HttpContext.Request.Headers["User-Agent"].ToString());
+}

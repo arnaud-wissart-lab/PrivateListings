@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using PrivateListings.Domain.Common;
@@ -135,9 +136,10 @@ public sealed class PrivateListingsPersistenceTests(PostgreSqlFixture fixture)
     {
         await fixture.ResetDatabaseAsync();
 
-        await using var dbContext = fixture.CreateDbContext();
-        var referenceSeeder = new PrivateListingsReferenceDataSeeder(dbContext);
-        var demoSeeder = new PrivateListingsDemoDataSeeder(dbContext, referenceSeeder);
+        await using var serviceProvider = fixture.CreateServiceProvider(new TestHostEnvironment("Demo"));
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PrivateListingsDbContext>();
+        var demoSeeder = scope.ServiceProvider.GetRequiredService<PrivateListingsDemoDataSeeder>();
 
         await demoSeeder.SeedAsync(new TestHostEnvironment("Demo"), CreateDemoSeedOptions());
 
@@ -145,6 +147,7 @@ public sealed class PrivateListingsPersistenceTests(PostgreSqlFixture fixture)
         Assert.Equal(20, await dbContext.UserProfiles.CountAsync());
         Assert.Equal(80, await dbContext.Listings.CountAsync());
         Assert.Equal(3, await dbContext.DemoUserAccounts.CountAsync());
+        Assert.Equal(3, await dbContext.Users.CountAsync());
         Assert.True(await dbContext.Conversations.AnyAsync());
         Assert.True(await dbContext.Messages.AnyAsync());
         Assert.True(await dbContext.Reports.AnyAsync());
@@ -155,17 +158,10 @@ public sealed class PrivateListingsPersistenceTests(PostgreSqlFixture fixture)
     {
         await fixture.ResetDatabaseAsync();
 
-        await using var dbContext = fixture.CreateDbContext();
-        var referenceSeeder = new PrivateListingsReferenceDataSeeder(dbContext);
-        var demoSeeder = new PrivateListingsDemoDataSeeder(dbContext, referenceSeeder);
-        var initializer = new PrivateListingsDatabaseInitializer(
-            dbContext,
-            referenceSeeder,
-            demoSeeder,
-            new TestHostEnvironment(Environments.Production),
-            Options.Create(new PrivateListingsPersistenceOptions()),
-            Options.Create(new PrivateListingsReferenceDataOptions()),
-            Options.Create(new PrivateListingsDemoSeedOptions()));
+        await using var serviceProvider = fixture.CreateServiceProvider(new TestHostEnvironment(Environments.Production));
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PrivateListingsDbContext>();
+        var initializer = scope.ServiceProvider.GetRequiredService<PrivateListingsDatabaseInitializer>();
 
         await initializer.InitializeAsync();
 

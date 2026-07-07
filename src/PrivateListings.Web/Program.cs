@@ -1,6 +1,10 @@
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
 using PrivateListings.Application;
 using PrivateListings.Infrastructure;
+using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Web.Components;
+using PrivateListings.Web.Components.Account;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +13,28 @@ builder.AddServiceDefaults();
 builder.Services
     .AddPrivateListingsApplication()
     .AddPrivateListingsInfrastructure(builder.Configuration, builder.Environment);
+
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    })
+    .AddIdentityCookies();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.Name = "__Host-PrivateListings.Auth";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/access-denied";
+    options.SlidingExpiration = true;
+});
 
 // Ajoute les services Blazor.
 builder.Services.AddRazorComponents()
@@ -32,11 +58,14 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.MapAdditionalIdentityEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();
