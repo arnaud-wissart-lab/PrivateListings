@@ -27,7 +27,9 @@ PrivateListings manipule des comptes, annonces privées, messages internes et ac
   - limités à 2 heures ;
   - invalidés après usage ;
   - invalidés par rotation lorsqu'un nouveau lien du même type est généré.
+- Le worker purge périodiquement les entrées expirées de `account_security_tokens`.
 - Les messages d'erreur de connexion ne doivent pas révéler si un email existe.
+- Un changement d'email ne modifie pas immédiatement le compte : un lien de confirmation est envoyé à la nouvelle adresse et l'ancienne adresse reste active jusqu'à confirmation.
 
 ## Sessions et cookies
 
@@ -36,6 +38,14 @@ PrivateListings manipule des comptes, annonces privées, messages internes et ac
 - Renouvellement contrôlé des sessions.
 - Invalidation de session après changement de mot de passe.
 - Protection contre la fixation de session.
+- Les clés ASP.NET Core Data Protection utilisent l'application stable `PrivateListings` et doivent être persistées via `PrivateListings:DataProtection:KeysPath` en Docker.
+
+## Headers HTTP
+
+- Les réponses applicatives ajoutent `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` et `Permissions-Policy`.
+- Une CSP progressive est activée par défaut via `Content-Security-Policy`.
+- La valeur CSP est configurable par `PrivateListings:SecurityHeaders:ContentSecurityPolicy`.
+- La politique actuelle reste compatible Blazor Server, notamment pour la connexion SignalR et les styles/scripts inline existants.
 
 ## Autorisation
 
@@ -147,7 +157,7 @@ Actions concernées :
 - activation de compte ;
 - demande et usage de reset password ;
 - changement de mot de passe ;
-- changement d'email ;
+- demande et confirmation de changement d'email ;
 - changement de rôle ;
 - demande de suppression de compte ;
 - suspension ou réactivation de compte ;
@@ -184,7 +194,7 @@ Le journal d'audit ne doit pas stocker de secrets. Les métadonnées techniques 
 - Aucun mot de passe ou secret durable dans les emails.
 - Les liens d'activation et de reset doivent expirer rapidement.
 - Les emails doivent rester sobres et ne pas révéler d'informations sensibles.
-- Les liens doivent pointer vers le domaine configuré de l'application.
+- Les liens doivent pointer vers `PrivateListings:PublicBaseUrl`, jamais vers le `Host` de la requête entrante.
 - En développement Aspire, MailPit reçoit les emails via SMTP ; le lien complet n'est pas écrit dans les logs applicatifs.
 
 ## Mode démo
@@ -206,6 +216,7 @@ Le journal d'audit ne doit pas stocker de secrets. Les métadonnées techniques 
 - Rotation possible des secrets.
 - Valeurs par défaut de développement non réutilisées en production.
 - Vérification de configuration au démarrage pour les paramètres critiques.
+- En Production, le démarrage est refusé si `PrivateListings:PublicBaseUrl` est absent, si `AllowedHosts` vaut `*`, si SMTP n'est pas configuré ou si le seed démo est activé.
 
 ## Déploiement
 

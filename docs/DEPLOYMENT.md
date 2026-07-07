@@ -7,7 +7,7 @@ PrivateListings est déployé sur le mini-PC GEEKOM avec Docker Compose, sans im
 Services prévus :
 
 - `privatelistings-web` : application ASP.NET Core / Blazor.
-- `privatelistings-worker` : tâches planifiées, notamment expiration des annonces.
+- `privatelistings-worker` : tâches planifiées, notamment expiration des annonces et purge des jetons de sécurité expirés.
 - `privatelistings-postgres` : base PostgreSQL persistante.
 - `privatelistings-mailpit` : service email optionnel, uniquement avec le profil Compose `nonproduction`.
 
@@ -59,12 +59,14 @@ Volumes Docker nommés :
 
 - `privatelistings_postgres_data` : données PostgreSQL.
 - `privatelistings_uploads` : fichiers uploadés, notamment les images d'annonces.
+- `privatelistings_data_protection_keys` : clés ASP.NET Core Data Protection.
 
 Docker Compose peut les créer automatiquement. Pour les créer explicitement :
 
 ```bash
 docker volume create privatelistings_postgres_data
 docker volume create privatelistings_uploads
+docker volume create privatelistings_data_protection_keys
 ```
 
 Les uploads sont montés dans les conteneurs applicatifs sous :
@@ -75,6 +77,14 @@ Les uploads sont montés dans les conteneurs applicatifs sous :
 
 L'application stocke les images dans `listing-images` sous ce volume. Le reverse proxy ne doit pas servir ce volume directement : les images doivent rester exposées par les endpoints applicatifs, qui appliquent les contrôles d'accès.
 
+Les clés Data Protection sont montées sous :
+
+```text
+/var/lib/privatelistings/data-protection-keys
+```
+
+Ce volume doit être sauvegardé avec la base. Une perte de ces clés invalide les cookies, les jetons temporaires Identity et les protections cryptographiques ASP.NET Core existantes.
+
 ## Configuration production
 
 Paramètres importants dans `.env` :
@@ -82,12 +92,32 @@ Paramètres importants dans `.env` :
 ```env
 ASPNETCORE_ENVIRONMENT=Production
 ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+PRIVATE_LISTINGS_PUBLIC_BASE_URL=https://privatelistings.example.test
+PRIVATE_LISTINGS_ALLOWED_HOSTS=privatelistings.example.test
 PRIVATE_LISTINGS_APPLY_MIGRATIONS_ON_STARTUP=false
 PRIVATE_LISTINGS_DEMO_SEED_ENABLED=false
 PRIVATE_LISTINGS_EXPOSE_HEALTH_ENDPOINTS=true
+PRIVATE_LISTINGS_SMTP_HOST=smtp.example.test
+PRIVATE_LISTINGS_SMTP_PORT=587
+PRIVATE_LISTINGS_SMTP_ENABLE_SSL=true
 ```
 
 Le compose publie le web sur `127.0.0.1:8080` par défaut. Cela suppose un reverse proxy externe sur le GEEKOM ou sur l'infrastructure locale. Le reverse proxy doit gérer TLS et transmettre les en-têtes `X-Forwarded-Proto` et `X-Forwarded-For`.
+
+En environnement `Production`, l'application refuse de démarrer si :
+
+- `PrivateListings:PublicBaseUrl` est absent ou invalide ;
+- `AllowedHosts` est vide ou vaut `*` ;
+- SMTP n'est pas configuré ;
+- `PrivateListings:DemoSeed:Enabled=true`.
+
+`PRIVATE_LISTINGS_PUBLIC_BASE_URL` est la source unique des liens envoyés par email. Elle doit correspondre à l'URL publique réellement utilisée par les membres, sans query string ni fragment.
+
+La CSP est activée par défaut avec une politique compatible Blazor Server. Elle peut être remplacée par :
+
+```env
+PRIVATE_LISTINGS_CSP=default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; form-action 'self'
+```
 
 ## Healthchecks
 
@@ -303,6 +333,9 @@ ASPNETCORE_ENVIRONMENT=Demo
 POSTGRES_DB=privatelistings_demo
 PRIVATE_LISTINGS_POSTGRES_VOLUME=privatelistings_demo_postgres_data
 PRIVATE_LISTINGS_UPLOADS_VOLUME=privatelistings_demo_uploads
+PRIVATE_LISTINGS_DATA_PROTECTION_KEYS_VOLUME=privatelistings_demo_data_protection_keys
+PRIVATE_LISTINGS_PUBLIC_BASE_URL=https://demo.privatelistings.example.test
+PRIVATE_LISTINGS_ALLOWED_HOSTS=demo.privatelistings.example.test
 PRIVATE_LISTINGS_DEMO_SEED_ENABLED=true
 PRIVATE_LISTINGS_SMTP_HOST=privatelistings-mailpit
 PRIVATE_LISTINGS_SMTP_PORT=1025

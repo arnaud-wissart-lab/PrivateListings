@@ -8,7 +8,7 @@ PrivateListings est une plateforme web responsive d'annonces privées et d'entra
 
 Le produit vise une expérience sobre, fiable et sécurisée pour des communautés privées ou semi-privées : voisinage, associations, collectifs, entreprises, clubs ou groupes locaux. La priorité initiale est de livrer un MVP centré sur les annonces privées, l'entraide locale, la modération et la sécurité des comptes.
 
-## Stack prévue
+## Stack
 
 - .NET 10 LTS
 - ASP.NET Core / Blazor Web App
@@ -16,13 +16,12 @@ Le produit vise une expérience sobre, fiable et sécurisée pour des communaut�
 - PostgreSQL
 - EF Core 10
 - Docker Desktop en développement
-- Docker Compose pour le déploiement final sur mini-PC GEEKOM
+- Docker Compose pour le déploiement sur mini-PC GEEKOM
 - GHCR pour les images Docker
 - GitHub Actions CI/CD
 - Dependabot
 - Tests unitaires, d'intégration et fonctionnels
 - UI française, responsive desktop et mobile
-- Metronic 9.5.0 si exploitable depuis `E:\Assets\metronic-v9.5.0`
 
 ## Documentation
 
@@ -46,7 +45,20 @@ Le squelette initial est généré dans `PrivateListings.sln` :
 - `src/PrivateListings.Infrastructure` : EF Core, PostgreSQL et services techniques.
 - `src/PrivateListings.Web` : interface Blazor Web App.
 - `src/PrivateListings.Worker` : tâches planifiées.
-- `tests/*` : tests de structure initiaux.
+- `tests/*` : tests unitaires, intégration PostgreSQL et E2E Playwright.
+
+## Modules disponibles
+
+- Authentification par email et mot de passe avec activation de compte.
+- Reset password par lien temporaire à usage unique.
+- Changement d'email par lien de confirmation envoyé à la nouvelle adresse.
+- Annonces privées avec catégories, publication, expiration et images stockées hors webroot.
+- Messagerie interne entre membres sur une annonce, notifications email sans contenu privé.
+- Signalements, blocage de conversation et premiers écrans de modération.
+- Back-office pour administrateurs et modérateurs : tableau de bord, annonces, catégories, utilisateurs, signalements et audit logs.
+- Mode `Demo` isolé avec seed de comptes et données fictives.
+- Worker pour l'expiration des annonces et la purge des jetons de sécurité expirés.
+- Déploiement Docker Compose GEEKOM avec PostgreSQL, uploads et clés Data Protection persistants.
 
 ## Services de développement
 
@@ -76,6 +88,36 @@ Les parcours E2E Playwright sont exécutables séparément :
 .\scripts\e2e.ps1 -Headed
 ```
 
+Les validations utilisées avant livraison publique sont :
+
+```powershell
+dotnet build PrivateListings.sln --configuration Release
+dotnet test PrivateListings.sln --configuration Release
+dotnet format PrivateListings.sln --verify-no-changes --no-restore
+git diff --check
+```
+
+## Comptes démo
+
+En environnement `Demo`, les comptes fictifs suivants sont créés si `PrivateListings:DemoSeed:Enabled=true` :
+
+| Rôle | Email | Mot de passe |
+| --- | --- | --- |
+| Administrateur | `admin-demo@example.test` | `DemoAdmin!2026` |
+| Modérateur | `moderateur-demo@example.test` | `DemoModerateur!2026` |
+| Membre | `membre-demo@example.test` | `DemoMembre!2026` |
+
+Ces comptes ne doivent jamais être utilisés en production et le seed démo est refusé par validation en environnement `Production`.
+
 ## État actuel
 
-Le dépôt contient le squelette technique .NET 10 initial, compilable, sans code métier complexe.
+Le dépôt contient un MVP fonctionnel pour annonces privées et entraide locale. Les parcours principaux sont implémentés et couverts par tests unitaires, intégration PostgreSQL et E2E Playwright.
+
+Limites actuelles :
+
+- Le MFA administrateur reste à implémenter.
+- Les rate limiters applicatifs sont en mémoire ; une implémentation distribuée sera nécessaire en multi-instance.
+- Les images uploadées sont validées et stockées hors webroot, mais le redimensionnement/recompression n'est pas activé.
+- Le module contact public n'est pas encore implémenté.
+- Les sauvegardes chiffrées et les restaurations périodiquement testées restent à formaliser hors scripts existants.
+- Le déploiement `Production` exige une configuration explicite : `PrivateListings:PublicBaseUrl`, `AllowedHosts`, SMTP et clés Data Protection persistantes.
