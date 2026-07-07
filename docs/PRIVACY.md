@@ -53,7 +53,11 @@ Ce document fixe les principes initiaux. Il ne remplace pas une analyse juridiqu
 - Conversations.
 - Messages.
 - Participants.
-- Dates d'envoi et de lecture si la fonctionnalité est retenue.
+- Dates d'envoi.
+- États de lecture par participant.
+- Signalements de conversations ou de messages.
+- Blocages entre utilisateurs lorsque le blocage est activé.
+- Notifications email de nouveau message, sans contenu ni extrait du message privé.
 
 ### Modération et audit
 
@@ -97,7 +101,10 @@ Les consentements facultatifs doivent être séparés des conditions nécessaire
 - Les annonces privées ne doivent pas être accessibles aux visiteurs non authentifiés.
 - Les contenus doivent être visibles uniquement dans le périmètre prévu par la communauté.
 - Les informations de profil affichées doivent être limitées.
-- Les conversations privées ne doivent être visibles que par les participants et les modérateurs autorisés dans les cas prévus.
+- Les conversations privées ne doivent être visibles que par leurs participants dans le MVP.
+- Il n'existe pas d'écran de lecture générale des messages pour les administrateurs dans le MVP.
+- Tout accès futur d'un administrateur ou modérateur au contenu d'un message devra être limité à un cas encadré, par exemple un signalement, et journalisé dans `AuditLog`.
+- Les emails de notification de messagerie ne doivent jamais contenir le corps d'un message privé, une citation, ni un résumé de son contenu.
 
 ## Export des données
 
@@ -148,6 +155,9 @@ Les durées exactes devront être validées avant production. Cibles initiales :
 - logs techniques : conservation courte ;
 - audit log : conservation plus longue, proportionnée au risque ;
 - annonces archivées : durée configurable ;
+- conversations et messages privés : conservation limitée à la durée nécessaire au service, à la sécurité et aux signalements ouverts ;
+- signalements liés à la messagerie : conservation le temps du traitement puis selon la durée d'audit validée ;
+- blocages utilisateur : conservation tant que le blocage est actif, puis purge ou anonymisation selon la politique retenue ;
 - comptes supprimés : anonymisation ou purge selon politique retenue ;
 - images orphelines : purge régulière.
 

@@ -12,4 +12,10 @@ public sealed class PrivateListingsUser : IdentityUser<Guid>
     public DateTimeOffset CreatedAt { get; set; }
 
     public bool MfaRequiredForAdmin { get; set; }
+
+    public DateTimeOffset? SuspendedAt { get; set; }
+
+    public string? SuspensionReason { get; set; }
+
+    public bool IsSuspended => SuspendedAt.HasValue;
 }

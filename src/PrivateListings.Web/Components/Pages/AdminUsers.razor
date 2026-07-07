@@ -1,0 +1,87 @@
+@page "/admin/utilisateurs"
+@attribute [Authorize(Policy = BackOfficePolicies.Admin)]
+
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject IBackOfficeService BackOfficeService
+
+<PageTitle>Utilisateurs - Back-office</PageTitle>
+
+<AdminShell Title="Utilisateurs" Subtitle="Liste paginée des comptes, sans affichage global des emails." Active="users">
+    <ChildContent>
+        <form method="get" class="admin-filter-bar">
+            <label class="field-label" for="q">Recherche</label>
+            <input id="q" name="q" value="@Q" class="field-input" placeholder="Nom affiché ou email" />
+            <button type="submit" class="primary-button">Rechercher</button>
+            <a class="secondary-link-button" href="/admin/utilisateurs">Réinitialiser</a>
+        </form>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Rôles</th>
+                        <th>Statut</th>
+                        <th>Email confirmé</th>
+                        <th>Création</th>
+                        <th class="admin-actions-cell">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in users.Items)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@user.DisplayName</strong>
+                                <small>@user.UserProfileId</small>
+                            </td>
+                            <td>@FormatRoles(user.Roles)</td>
+                            <td>
+                                <span class="status-pill @BackOfficeDisplay.UserStatusClass(user.SuspendedAt)">
+                                    @BackOfficeDisplay.UserStatusLabel(user.SuspendedAt)
+                                </span>
+                            </td>
+                            <td>@(user.EmailConfirmed ? "Oui" : "Non")</td>
+                            <td>@BackOfficeDisplay.FormatDate(user.CreatedAt)</td>
+                            <td class="admin-actions-cell">
+                                <a class="secondary-link-button" href="@($"/admin/utilisateurs/{user.UserId:D}")">Voir</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <AdminPagination CurrentPage="@users.Page" TotalPages="@users.TotalPages" BuildUrl="BuildPageUrl" />
+    </ChildContent>
+</AdminShell>
+
+@code {
+    private BackOfficePagedResult<BackOfficeUserSummary> users = new([], 1, 20, 0);
+
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    private int Page { get; set; } = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        users = await BackOfficeService.ListUsersAsync(new BackOfficePagedQuery(Q, Page));
+    }
+
+    private string BuildPageUrl(int page)
+        => QueryHelpers.AddQueryString(
+            "/admin/utilisateurs",
+            new Dictionary<string, string?>
+            {
+                ["q"] = Q,
+                ["page"] = page.ToString()
+            });
+
+    private static string FormatRoles(IReadOnlyList<string> roles)
+        => roles.Count == 0
+            ? "Aucun"
+            : string.Join(", ", roles.Select(BackOfficeDisplay.RoleLabel));
+}

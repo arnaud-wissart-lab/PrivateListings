@@ -31,6 +31,13 @@ internal static class IdentityModelBuilderExtensions
                 .HasColumnName("mfa_required_for_admin")
                 .IsRequired();
 
+            builder.Property(user => user.SuspendedAt)
+                .HasColumnName("suspended_at");
+
+            builder.Property(user => user.SuspensionReason)
+                .HasColumnName("suspension_reason")
+                .HasMaxLength(500);
+
             builder.HasOne<UserProfile>()
                 .WithMany()
                 .HasForeignKey(user => user.UserProfileId)
@@ -39,6 +46,9 @@ internal static class IdentityModelBuilderExtensions
             builder.HasIndex(user => user.UserProfileId)
                 .IsUnique()
                 .HasDatabaseName("ux_identity_users_user_profile_id");
+
+            builder.HasIndex(user => user.SuspendedAt)
+                .HasDatabaseName("ix_identity_users_suspended_at");
         });
 
         modelBuilder.Entity<PrivateListingsRole>()

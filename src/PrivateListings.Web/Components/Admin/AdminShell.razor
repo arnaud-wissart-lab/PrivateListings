@@ -1,0 +1,61 @@
+<section class="admin-shell">
+    <aside class="admin-sidebar" aria-label="Navigation back-office">
+        <a class="admin-brand" href="/admin">Back-office</a>
+        <nav>
+            <AuthorizeView Policy="@BackOfficePolicies.Admin">
+                <Authorized>
+                    <a class="@LinkClass("dashboard")" href="/admin">Dashboard</a>
+                    <a class="@LinkClass("users")" href="/admin/utilisateurs">Utilisateurs</a>
+                </Authorized>
+            </AuthorizeView>
+            <a class="@LinkClass("listings")" href="/admin/annonces">Annonces</a>
+            <a class="@LinkClass("reports")" href="/admin/signalements">Signalements</a>
+            <AuthorizeView Policy="@BackOfficePolicies.Admin">
+                <Authorized>
+                    <a class="@LinkClass("audit")" href="/admin/audit">AuditLogs</a>
+                    <a class="@LinkClass("categories")" href="/admin/categories">Catégories</a>
+                </Authorized>
+            </AuthorizeView>
+        </nav>
+    </aside>
+
+    <div class="admin-content">
+        <header class="admin-page-header">
+            <div>
+                <p class="admin-eyebrow">PrivateListings</p>
+                <h1>@Title</h1>
+                @if (!string.IsNullOrWhiteSpace(Subtitle))
+                {
+                    <p>@Subtitle</p>
+                }
+            </div>
+            @HeaderActions
+        </header>
+
+        <StatusMessage />
+
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    [Parameter]
+    public string? Active { get; set; }
+
+    [Parameter]
+    public RenderFragment? HeaderActions { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    private string LinkClass(string key)
+        => string.Equals(Active, key, StringComparison.Ordinal)
+            ? "is-active"
+            : string.Empty;
+}

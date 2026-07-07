@@ -22,6 +22,12 @@ public readonly record struct ReportTarget
         return new ReportTarget(ReportTargetType.Listing, listingId.Value);
     }
 
+    public static ReportTarget ForConversation(ConversationId conversationId)
+    {
+        Guard.AgainstEmpty(conversationId.Value, nameof(conversationId));
+        return new ReportTarget(ReportTargetType.Conversation, conversationId.Value);
+    }
+
     public static ReportTarget ForMessage(MessageId messageId)
     {
         Guard.AgainstEmpty(messageId.Value, nameof(messageId));

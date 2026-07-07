@@ -5,8 +5,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using PrivateListings.Application.Authentication;
+using PrivateListings.Application.BackOffice;
 using PrivateListings.Application.Listings;
+using PrivateListings.Application.Messaging;
+using PrivateListings.Infrastructure.BackOffice;
 using PrivateListings.Infrastructure.Identity;
+using PrivateListings.Infrastructure.Messaging;
 using PrivateListings.Infrastructure.Persistence;
 using PrivateListings.Infrastructure.Persistence.Seeding;
 using PrivateListings.Infrastructure.Storage;
@@ -35,7 +39,11 @@ public static class DependencyInjection
             .Configure<ListingImageOptions>(
                 configuration.GetSection(ListingImageOptions.SectionName))
             .Configure<ListingRateLimitOptions>(
-                configuration.GetSection(ListingRateLimitOptions.SectionName));
+                configuration.GetSection(ListingRateLimitOptions.SectionName))
+            .Configure<MessagingRateLimitOptions>(
+                configuration.GetSection(MessagingRateLimitOptions.SectionName))
+            .Configure<MessagingSpamOptions>(
+                configuration.GetSection(MessagingSpamOptions.SectionName));
 
         services.TryAddSingleton(TimeProvider.System);
 
@@ -75,9 +83,12 @@ public static class DependencyInjection
         services.AddScoped<PrivateListingsDatabaseInitializer>();
         services.AddScoped<AccountSecurityTokenStore>();
         services.AddScoped<IUserAccountService, IdentityUserAccountService>();
+        services.AddScoped<IBackOfficeService, EfBackOfficeService>();
         services.AddScoped<IListingRepository, EfListingRepository>();
+        services.AddScoped<IMessagingRepository, EfMessagingRepository>();
         services.AddScoped<IListingImageStorage, FileSystemListingImageStorage>();
         services.AddScoped<IEmailSender<PrivateListingsUser>, PrivateListingsIdentityEmailSender>();
+        services.AddScoped<IMessageNotificationSender, SmtpMessageNotificationSender>();
         services.AddScoped<IPasswordValidator<PrivateListingsUser>, PrivateListingsPasswordValidator>();
 
         services.Configure<DataProtectionTokenProviderOptions>(options =>

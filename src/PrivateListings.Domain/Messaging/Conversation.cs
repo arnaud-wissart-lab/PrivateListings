@@ -6,6 +6,7 @@ public sealed class Conversation
 {
     private readonly List<UserProfileId> _participantIds = [];
     private readonly List<Message> _messages = [];
+    private readonly List<ConversationReadState> _readStates = [];
 
     private Conversation()
     {
@@ -37,6 +38,8 @@ public sealed class Conversation
         CreatedAt = Guard.AgainstDefault(createdAt, nameof(createdAt));
         _participantIds.Add(initiatorId);
         _participantIds.Add(recipientId);
+        _readStates.Add(ConversationReadState.Create(id, initiatorId, createdAt));
+        _readStates.Add(ConversationReadState.Create(id, recipientId, createdAt));
     }
 
     public ConversationId Id { get; }
@@ -54,6 +57,8 @@ public sealed class Conversation
     public IReadOnlyCollection<UserProfileId> ParticipantIds => _participantIds.AsReadOnly();
 
     public IReadOnlyCollection<Message> Messages => _messages.AsReadOnly();
+
+    public IReadOnlyCollection<ConversationReadState> ReadStates => _readStates.AsReadOnly();
 
     public static Conversation StartForListing(
         ListingId listingId,
@@ -80,11 +85,12 @@ public sealed class Conversation
 
         var message = Message.Create(Id, senderId, body, sentAt);
         _messages.Add(message);
+        EnsureReadState(senderId).MarkRead(sentAt);
 
         return message;
     }
 
-    public void AddParticipant(UserProfileId participantId)
+    public void AddParticipant(UserProfileId participantId, DateTimeOffset addedAt)
     {
         EnsureOpen();
         Guard.AgainstEmpty(participantId.Value, nameof(participantId));
@@ -92,7 +98,36 @@ public sealed class Conversation
         if (!_participantIds.Contains(participantId))
         {
             _participantIds.Add(participantId);
+            _readStates.Add(ConversationReadState.Create(Id, participantId, addedAt));
         }
+    }
+
+    public void MarkRead(UserProfileId participantId, DateTimeOffset readAt)
+    {
+        EnsureParticipant(participantId);
+        EnsureReadState(participantId).MarkRead(readAt);
+    }
+
+    public void MarkUnread(UserProfileId participantId, DateTimeOffset markedAt)
+    {
+        EnsureParticipant(participantId);
+        EnsureReadState(participantId).MarkUnread(markedAt);
+    }
+
+    public bool IsUnreadFor(UserProfileId participantId)
+    {
+        EnsureParticipant(participantId);
+        var readState = EnsureReadState(participantId);
+
+        if (readState.IsMarkedUnread)
+        {
+            return true;
+        }
+
+        return _messages.Any(message =>
+            message.SenderId != participantId
+            && !message.IsDeleted
+            && (!readState.LastReadAt.HasValue || message.SentAt > readState.LastReadAt.Value));
     }
 
     public void Close(DateTimeOffset closedAt)
@@ -111,5 +146,29 @@ public sealed class Conversation
         {
             throw new DomainException("Une conversation clôturée ne peut plus être modifiée.");
         }
+    }
+
+    private void EnsureParticipant(UserProfileId participantId)
+    {
+        Guard.AgainstEmpty(participantId.Value, nameof(participantId));
+
+        if (!_participantIds.Contains(participantId))
+        {
+            throw new DomainException("Seul un participant peut accéder à cette conversation.");
+        }
+    }
+
+    private ConversationReadState EnsureReadState(UserProfileId participantId)
+    {
+        var readState = _readStates.SingleOrDefault(state => state.UserProfileId == participantId);
+        if (readState is not null)
+        {
+            return readState;
+        }
+
+        readState = ConversationReadState.Create(Id, participantId, CreatedAt);
+        _readStates.Add(readState);
+
+        return readState;
     }
 }

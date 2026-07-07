@@ -110,6 +110,7 @@ internal sealed class ReportConfiguration : IEntityTypeConfiguration<Report>
         return targetType switch
         {
             ReportTargetType.Listing => ReportTarget.ForListing(ListingId.From(targetId)),
+            ReportTargetType.Conversation => ReportTarget.ForConversation(ConversationId.From(targetId)),
             ReportTargetType.Message => ReportTarget.ForMessage(MessageId.From(targetId)),
             ReportTargetType.UserProfile => ReportTarget.ForUserProfile(UserProfileId.From(targetId)),
             _ => throw new InvalidOperationException("La clé de cible de signalement ne correspond à aucune cible connue.")

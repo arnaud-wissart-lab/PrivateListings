@@ -79,8 +79,11 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         return parts[0] switch
         {
             "Listing" when entityId.HasValue => AuditLogSubject.ForListing(ListingId.From(entityId.Value)),
+            "ListingCategory" when entityId.HasValue => AuditLogSubject.ForListingCategory(ListingCategoryId.From(entityId.Value)),
+            "Conversation" when entityId.HasValue => AuditLogSubject.ForConversation(ConversationId.From(entityId.Value)),
             "Message" when entityId.HasValue => AuditLogSubject.ForMessage(MessageId.From(entityId.Value)),
             "UserProfile" when entityId.HasValue => AuditLogSubject.ForUserProfile(UserProfileId.From(entityId.Value)),
+            "Report" when entityId.HasValue => AuditLogSubject.ForReport(ReportId.From(entityId.Value)),
             _ when !entityId.HasValue => AuditLogSubject.ForSystem(parts[0]),
             _ => throw new InvalidOperationException("La clé de sujet d'audit ne correspond à aucun sujet connu.")
         };

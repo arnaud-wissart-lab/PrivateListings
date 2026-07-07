@@ -60,6 +60,11 @@ public sealed class ListingService(
             return rateLimit;
         }
 
+        if (await repository.IsOwnerSuspendedAsync(command.OwnerId, cancellationToken).ConfigureAwait(false))
+        {
+            return ListingOperationResult.Forbidden("Votre compte est suspendu et ne peut pas publier d'annonce.");
+        }
+
         if (!await repository.ActiveCategoryExistsAsync(command.CategoryId, cancellationToken).ConfigureAwait(false))
         {
             return ListingOperationResult.ValidationFailed("La catégorie sélectionnée est invalide.");
@@ -150,6 +155,11 @@ public sealed class ListingService(
         if (listing.OwnerId != actorId)
         {
             return ListingOperationResult.Forbidden();
+        }
+
+        if (await repository.IsOwnerSuspendedAsync(actorId, cancellationToken).ConfigureAwait(false))
+        {
+            return ListingOperationResult.Forbidden("Votre compte est suspendu et ne peut pas publier d'annonce.");
         }
 
         try

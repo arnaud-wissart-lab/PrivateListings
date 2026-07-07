@@ -1,0 +1,94 @@
+@page "/messagerie"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Identity
+@using PrivateListings.Infrastructure.Identity
+
+@inject IMessagingService MessagingService
+@inject UserManager<PrivateListingsUser> UserManager
+
+<PageTitle>Messagerie</PageTitle>
+
+<section class="messaging-page">
+    <div class="messaging-toolbar">
+        <div>
+            <h1>Messagerie</h1>
+            <p class="listing-muted">Conversations liées aux annonces.</p>
+        </div>
+        <a class="secondary-link-button" href="/annonces">Voir les annonces</a>
+    </div>
+
+    <StatusMessage />
+
+    @if (currentUser is null)
+    {
+        <div class="listing-empty">
+            <h2>Session introuvable</h2>
+            <p>Reconnectez-vous pour consulter vos conversations.</p>
+            <a class="primary-link-button" href="/login">Connexion</a>
+        </div>
+    }
+    else if (conversations.Count == 0)
+    {
+        <div class="listing-empty">
+            <h2>Aucune conversation</h2>
+            <p>Les réponses envoyées depuis une annonce apparaîtront ici.</p>
+        </div>
+    }
+    else
+    {
+        <div class="conversation-list">
+            @foreach (var conversation in conversations)
+            {
+                <article class="conversation-row @(conversation.IsUnread ? "is-unread" : null)">
+                    <a class="conversation-row-main" href="@($"/messagerie/{conversation.Id.Value:D}")">
+                        <span class="conversation-participant">@conversation.OtherParticipantDisplayName</span>
+                        @if (!string.IsNullOrWhiteSpace(conversation.ListingTitle))
+                        {
+                            <span class="conversation-listing">@conversation.ListingTitle</span>
+                        }
+                        <span class="conversation-meta">
+                            @if (conversation.IsUnread)
+                            {
+                                <span class="unread-dot" aria-label="Conversation non lue"></span>
+                                <span>Non lu</span>
+                            }
+                            else
+                            {
+                                <span>Lu</span>
+                            }
+                            <span>@FormatDate(conversation.LastMessageAt ?? conversation.CreatedAt)</span>
+                        </span>
+                    </a>
+
+                    @if (conversation.IsBlocked)
+                    {
+                        <span class="status-pill is-suspended">Bloquée</span>
+                    }
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private PrivateListingsUser? currentUser;
+    private IReadOnlyList<ConversationSummary> conversations = [];
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await UserManager.GetUserAsync(HttpContext.User);
+        if (currentUser is null)
+        {
+            return;
+        }
+
+        conversations = await MessagingService.ListConversationsAsync(currentUser.UserProfileId);
+    }
+
+    private static string FormatDate(DateTimeOffset value)
+        => value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+}

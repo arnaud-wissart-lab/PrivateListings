@@ -1,0 +1,27 @@
+@if (TotalPages > 1)
+{
+    <nav class="admin-pagination" aria-label="Pagination">
+        <a class="secondary-link-button @(CurrentPage <= 1 ? "is-disabled" : null)"
+           href="@(CurrentPage <= 1 ? "#" : BuildUrl(CurrentPage - 1))"
+           aria-disabled="@(CurrentPage <= 1)">
+            Précédent
+        </a>
+        <span>Page @CurrentPage / @TotalPages</span>
+        <a class="secondary-link-button @(CurrentPage >= TotalPages ? "is-disabled" : null)"
+           href="@(CurrentPage >= TotalPages ? "#" : BuildUrl(CurrentPage + 1))"
+           aria-disabled="@(CurrentPage >= TotalPages)">
+            Suivant
+        </a>
+    </nav>
+}
+
+@code {
+    [Parameter]
+    public int CurrentPage { get; set; }
+
+    [Parameter]
+    public int TotalPages { get; set; }
+
+    [Parameter, EditorRequired]
+    public Func<int, string> BuildUrl { get; set; } = default!;
+}

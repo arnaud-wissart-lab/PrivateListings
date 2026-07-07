@@ -103,6 +103,22 @@ public sealed class ListingServiceTests
     }
 
     [Fact]
+    public async Task PublishAsyncRefuseUnProprietaireSuspendu()
+    {
+        var ownerId = UserProfileId.New();
+        var categoryId = ListingCategoryId.New();
+        var listing = CreateListing(ownerId, categoryId);
+        var repository = new FakeListingRepository(categoryId, listing);
+        repository.SuspendOwner(ownerId);
+        var service = CreateService(repository);
+
+        var result = await service.PublishAsync(listing.Id, ownerId);
+
+        Assert.Equal(ListingOperationStatus.Forbidden, result.Status);
+        Assert.Equal(ListingStatus.Draft, listing.Status);
+    }
+
+    [Fact]
     public async Task DeleteAsyncEffectueUneSuppressionLogique()
     {
         var ownerId = UserProfileId.New();
@@ -197,6 +213,11 @@ public sealed class ListingServiceTests
     {
         public List<Listing> Listings { get; } = listings.ToList();
 
+        private HashSet<UserProfileId> SuspendedOwners { get; } = [];
+
+        public void SuspendOwner(UserProfileId ownerId)
+            => SuspendedOwners.Add(ownerId);
+
         public Task<IReadOnlyList<ListingCategoryOption>> ListActiveCategoriesAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<ListingCategoryOption>>(
                 [new ListingCategoryOption(categoryId, "Tests", null)]);
@@ -205,6 +226,11 @@ public sealed class ListingServiceTests
             ListingCategoryId requestedCategoryId,
             CancellationToken cancellationToken)
             => Task.FromResult(requestedCategoryId == categoryId);
+
+        public Task<bool> IsOwnerSuspendedAsync(
+            UserProfileId ownerId,
+            CancellationToken cancellationToken)
+            => Task.FromResult(SuspendedOwners.Contains(ownerId));
 
         public Task<IReadOnlyList<ListingSummary>> SearchPublishedAsync(
             ListingSearchQuery query,

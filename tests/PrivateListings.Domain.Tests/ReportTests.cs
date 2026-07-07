@@ -25,4 +25,21 @@ public sealed class ReportTests
         Assert.Equal(listingId.Value, report.Target.TargetId);
         Assert.Equal(ReportStatus.Open, report.Status);
     }
+
+    [Fact]
+    public void CreateBuildsOpenReportForConversation()
+    {
+        var reporterId = UserProfileId.New();
+        var conversationId = ConversationId.New();
+        var createdAt = new DateTimeOffset(2026, 7, 7, 10, 0, 0, TimeSpan.Zero);
+
+        var report = Report.Create(
+            reporterId,
+            ReportTarget.ForConversation(conversationId),
+            "Conversation à vérifier",
+            createdAt);
+
+        Assert.Equal(ReportTargetType.Conversation, report.Target.Type);
+        Assert.Equal(conversationId.Value, report.Target.TargetId);
+    }
 }

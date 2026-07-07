@@ -168,6 +168,17 @@ Le module annonces est organisé de la manière suivante :
 - `PrivateListings.Web` sert les images par endpoint contrôlé et expose les pages Blazor SSR de liste, détail, création, édition et annonces du membre.
 - `PrivateListings.Worker` exécute l'expiration automatique des annonces publiées à fréquence configurable.
 
+### Back-office MVP
+
+Le back-office minimal est structuré autour de `PrivateListings.Application.BackOffice` et de son implémentation EF/Identity dans `PrivateListings.Infrastructure.BackOffice`.
+
+- Les contrats applicatifs exposent les listes paginées, les DTO de synthèse et les commandes d'administration/modération.
+- `EfBackOfficeService` orchestre les actions sensibles, applique les restrictions Admin/Moderator et écrit les `AuditLog`.
+- Les pages Blazor sous `/admin` utilisent les policies `BackOffice.Admin` et `BackOffice.Moderation`.
+- Les actions POST du back-office sont regroupées sous `/admin/actions`, valident l'antiforgery et exigent une confirmation explicite pour les actions sensibles.
+- Les modérateurs peuvent traiter les signalements d'annonces et suspendre une annonce ; les actions de gestion utilisateurs, catégories, audit, suppression logique et seed démo restent réservées aux administrateurs.
+- Le seed démo manuel est déclenchable uniquement en environnement `Demo`.
+
 ## Authentification et autorisation
 
 Le socle d'authentification est implémenté avec ASP.NET Core Identity, cookies applicatifs et pages Blazor SSR.
@@ -182,6 +193,8 @@ Le socle d'authentification est implémenté avec ASP.NET Core Identity, cookies
 - Rate limiting applicatif sur login, inscription, demande de reset, reset et confirmation email.
 - Lockout Identity après échecs de connexion répétés.
 - Rôles Identity : membre, modérateur, administrateur.
+- Les policies back-office explicites sont `BackOffice.Admin` et `BackOffice.Moderation`.
+- La suspension administrative d'un compte est portée par `PrivateListingsUser` et bloque la création ou publication d'annonce.
 - MFA préparée pour les administrateurs via le modèle Identity et l'indicateur `MfaRequiredForAdmin`; l'activation complète du parcours MFA reste à finaliser.
 - Actions sensibles tracées dans `AuditLog` sans mot de passe ni token en clair.
 

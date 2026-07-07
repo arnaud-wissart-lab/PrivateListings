@@ -1,0 +1,84 @@
+@page "/admin"
+@attribute [Authorize(Policy = BackOfficePolicies.Admin)]
+
+@using Microsoft.Extensions.Hosting
+
+@inject IBackOfficeService BackOfficeService
+@inject IHostEnvironment HostEnvironment
+
+<PageTitle>Back-office</PageTitle>
+
+<AdminShell Title="Dashboard" Subtitle="Vue synthétique de l'activité et des points de vigilance." Active="dashboard">
+    <HeaderActions>
+        @if (HostEnvironment.IsEnvironment("Demo"))
+        {
+            <form method="post" action="/admin/actions/demo-seed" class="admin-inline-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                <label class="confirm-line">
+                    <input type="checkbox" name="confirm" value="true" required />
+                    <span>Confirmer le seed démo</span>
+                </label>
+                <button type="submit" class="secondary-button">Lancer le seed démo</button>
+            </form>
+        }
+    </HeaderActions>
+
+    <ChildContent>
+        <div class="admin-metric-grid">
+            <article class="admin-metric">
+                <span>Utilisateurs</span>
+                <strong>@dashboard.TotalUsers</strong>
+                <small>@dashboard.SuspendedUsers suspendu(s)</small>
+            </article>
+            <article class="admin-metric">
+                <span>Annonces publiées</span>
+                <strong>@dashboard.PublishedListings</strong>
+                <small>@dashboard.SuspendedListings suspendue(s)</small>
+            </article>
+            <article class="admin-metric">
+                <span>Signalements ouverts</span>
+                <strong>@dashboard.OpenReports</strong>
+                <small>À traiter par la modération</small>
+            </article>
+            <article class="admin-metric">
+                <span>Audit récent</span>
+                <strong>@dashboard.AuditLogsLastSevenDays</strong>
+                <small>Entrées sur 7 jours</small>
+            </article>
+        </div>
+
+        <div class="admin-action-grid">
+            <a class="admin-action-link" href="/admin/utilisateurs">
+                <strong>Utilisateurs</strong>
+                <span>Rechercher, vérifier un profil technique, suspendre ou réactiver.</span>
+            </a>
+            <a class="admin-action-link" href="/admin/annonces">
+                <strong>Annonces</strong>
+                <span>Filtrer les annonces, suspendre ou supprimer logiquement.</span>
+            </a>
+            <a class="admin-action-link" href="/admin/signalements">
+                <strong>Signalements</strong>
+                <span>Traiter les signalements ouverts et documenter les décisions.</span>
+            </a>
+            <a class="admin-action-link" href="/admin/audit">
+                <strong>AuditLogs</strong>
+                <span>Consulter les actions sensibles journalisées.</span>
+            </a>
+        </div>
+    </ChildContent>
+</AdminShell>
+
+@code {
+    private BackOfficeDashboard dashboard = new(0, 0, 0, 0, 0, 0);
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private string ReturnUrl => $"{HttpContext.Request.Path}{HttpContext.Request.QueryString}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        dashboard = await BackOfficeService.GetDashboardAsync();
+    }
+}

@@ -42,6 +42,9 @@ PrivateListings manipule des comptes, annonces privées, messages internes et ac
 - Les accès doivent être contrôlés par politiques explicites.
 - Les rôles MVP sont : membre, modérateur, administrateur.
 - Les actions de modération et d'administration doivent être protégées par autorisation serveur.
+- Le back-office MVP utilise deux policies serveur :
+  - `BackOffice.Admin`, réservée au rôle `Admin` ;
+  - `BackOffice.Moderation`, réservée aux rôles `Admin` et `Moderator`.
 - Les vérifications d'autorisation ne doivent jamais dépendre uniquement de l'UI.
 - Un membre ne doit accéder qu'aux annonces, conversations et fichiers qu'il est autorisé à consulter.
 
@@ -172,6 +175,9 @@ Le journal d'audit ne doit pas stocker de secrets. Les métadonnées techniques 
 - Les actions de modération structurantes doivent demander un motif.
 - Les administrateurs ne doivent pas utiliser de comptes partagés.
 - Les changements de rôle doivent être audités.
+- Les modérateurs peuvent traiter les signalements d'annonces et suspendre une annonce ; les signalements visant un profil, une conversation ou un message restent réservés aux administrateurs dans le MVP.
+- Le back-office MVP ne liste pas globalement les messages privés.
+- Une suspension utilisateur est enregistrée sur le compte Identity et empêche la création ou la publication d'annonce.
 
 ## Emails
 
@@ -191,6 +197,7 @@ Le journal d'audit ne doit pas stocker de secrets. Les métadonnées techniques 
 - Le seed démo est désactivé par défaut et ne s'exécute pas en production sans option explicite.
 - Les mots de passe de démonstration sont des valeurs fictives configurées pour `Demo`; seul leur hachage PBKDF2 est stocké en base.
 - Les emails de démonstration utilisent le domaine réservé `example.test`.
+- Le lancement manuel du seed démo depuis le back-office est refusé hors environnement `Demo` et produit un `AuditLog`.
 
 ## Configuration et secrets
 

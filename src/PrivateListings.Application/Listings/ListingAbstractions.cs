@@ -73,6 +73,10 @@ public interface IListingRepository
         ListingCategoryId categoryId,
         CancellationToken cancellationToken);
 
+    Task<bool> IsOwnerSuspendedAsync(
+        UserProfileId ownerId,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ListingSummary>> SearchPublishedAsync(
         ListingSearchQuery query,
         DateTimeOffset now,

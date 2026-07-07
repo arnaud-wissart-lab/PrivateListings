@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using PrivateListings.Application.BackOffice;
 using PrivateListings.Application.Listings;
 using PrivateListings.Domain.Common;
 using PrivateListings.Infrastructure.Identity;
@@ -180,31 +181,42 @@ internal static class ListingEndpointRouteBuilderExtensions
     private static async Task<IResult> SuspendAsync(
         Guid listingId,
         [FromForm] string reason,
+        [FromForm] string? confirm,
         HttpContext context,
         IAntiforgery antiforgery,
-        IListingService listingService,
+        IBackOfficeService backOfficeService,
         UserManager<PrivateListingsUser> userManager,
         CancellationToken cancellationToken)
     {
         await antiforgery.ValidateRequestAsync(context).ConfigureAwait(false);
+        if (!string.Equals(confirm, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return RedirectWithStatus(
+                context,
+                $"/annonces/{listingId:D}",
+                "Erreur : confirmation obligatoire.");
+        }
+
         var user = await userManager.GetUserAsync(context.User).ConfigureAwait(false);
         if (user is null)
         {
             return Results.Challenge();
         }
 
-        var result = await listingService.SuspendAsync(
-            new SuspendListingCommand(
-                user.UserProfileId,
+        var result = await backOfficeService.SuspendListingAsync(
+            new SuspendBackOfficeListingCommand(
+                new BackOfficeActor(
+                    user.UserProfileId,
+                    context.User.IsInRole(PrivateListingsRoleNames.Admin),
+                    context.User.IsInRole(PrivateListingsRoleNames.Moderator)),
                 ListingId.From(listingId),
-                reason,
-                CanModerate(context)),
+                reason),
             cancellationToken).ConfigureAwait(false);
 
         return RedirectWithStatus(
             context,
             $"/annonces/{listingId:D}",
-            FormatResult(result, "Annonce suspendue."));
+            FormatBackOfficeResult(result, "Annonce suspendue."));
     }
 
     private static bool CanModerate(HttpContext context)
@@ -217,6 +229,11 @@ internal static class ListingEndpointRouteBuilderExtensions
             context.Request.Headers["User-Agent"].ToString());
 
     private static string FormatResult(ListingOperationResult result, string successMessage)
+        => result.Succeeded
+            ? successMessage
+            : $"Erreur : {string.Join(" ", result.Errors ?? ["l'opération n'a pas pu aboutir."])}";
+
+    private static string FormatBackOfficeResult(BackOfficeOperationResult result, string successMessage)
         => result.Succeeded
             ? successMessage
             : $"Erreur : {string.Join(" ", result.Errors ?? ["l'opération n'a pas pu aboutir."])}";

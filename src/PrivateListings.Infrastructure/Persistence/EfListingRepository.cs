@@ -23,6 +23,13 @@ public sealed class EfListingRepository(PrivateListingsDbContext dbContext) : IL
             .AsNoTracking()
             .AnyAsync(category => category.Id == categoryId && category.IsActive, cancellationToken);
 
+    public Task<bool> IsOwnerSuspendedAsync(
+        UserProfileId ownerId,
+        CancellationToken cancellationToken)
+        => dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(user => user.UserProfileId == ownerId && user.SuspendedAt.HasValue, cancellationToken);
+
     public async Task<IReadOnlyList<ListingSummary>> SearchPublishedAsync(
         ListingSearchQuery query,
         DateTimeOffset now,

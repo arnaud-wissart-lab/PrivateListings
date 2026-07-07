@@ -428,6 +428,45 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PrivateListings.Domain.Messaging.ConversationReadState", b =>
+                {
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<Guid>("UserProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_profile_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsMarkedUnread")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_marked_unread");
+
+                    b.Property<DateTimeOffset?>("LastReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_read_at");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("ConversationId", "UserProfileId");
+
+                    b.HasIndex("UserProfileId", "IsMarkedUnread")
+                        .HasDatabaseName("ix_conversation_read_states_user_unread");
+
+                    b.ToTable("conversation_read_states", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_conversation_read_states_last_read_after_created", "last_read_at IS NULL OR last_read_at >= created_at");
+
+                            t.HasCheckConstraint("ck_conversation_read_states_updated_after_created", "updated_at IS NULL OR updated_at >= created_at");
+                        });
+                });
+
             modelBuilder.Entity("PrivateListings.Domain.Messaging.Message", b =>
                 {
                     b.Property<Guid>("Id")
@@ -467,6 +506,37 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                     b.ToTable("messages", null, t =>
                         {
                             t.HasCheckConstraint("ck_messages_deleted_after_sent", "deleted_at IS NULL OR deleted_at >= sent_at");
+                        });
+                });
+
+            modelBuilder.Entity("PrivateListings.Domain.Messaging.UserBlock", b =>
+                {
+                    b.Property<Guid>("BlockerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("blocker_id");
+
+                    b.Property<Guid>("BlockedId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("blocked_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.HasKey("BlockerId", "BlockedId");
+
+                    b.HasIndex("BlockedId", "RevokedAt")
+                        .HasDatabaseName("ix_user_blocks_blocked_active");
+
+                    b.ToTable("user_blocks", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_user_blocks_distinct_users", "blocker_id <> blocked_id");
+
+                            t.HasCheckConstraint("ck_user_blocks_revoked_after_created", "revoked_at IS NULL OR revoked_at >= created_at");
                         });
                 });
 
@@ -876,6 +946,15 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspended_at");
+
+                    b.Property<string>("SuspensionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("suspension_reason");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
@@ -895,6 +974,9 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("SuspendedAt")
+                        .HasDatabaseName("ix_identity_users_suspended_at");
 
                     b.HasIndex("UserProfileId")
                         .IsUnique()
@@ -1042,6 +1124,21 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("PrivateListings.Domain.Messaging.ConversationReadState", b =>
+                {
+                    b.HasOne("PrivateListings.Domain.Messaging.Conversation", null)
+                        .WithMany("ReadStates")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PrivateListings.Domain.Users.UserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("UserProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PrivateListings.Domain.Messaging.Message", b =>
                 {
                     b.HasOne("PrivateListings.Domain.Messaging.Conversation", null)
@@ -1053,6 +1150,21 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
                     b.HasOne("PrivateListings.Domain.Users.UserProfile", null)
                         .WithMany()
                         .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PrivateListings.Domain.Messaging.UserBlock", b =>
+                {
+                    b.HasOne("PrivateListings.Domain.Users.UserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("BlockedId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivateListings.Domain.Users.UserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("BlockerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -1139,6 +1251,8 @@ namespace PrivateListings.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("PrivateListings.Domain.Messaging.Conversation", b =>
                 {
                     b.Navigation("Messages");
+
+                    b.Navigation("ReadStates");
                 });
 
             modelBuilder.Entity("PrivateListings.Domain.Users.UserProfile", b =>

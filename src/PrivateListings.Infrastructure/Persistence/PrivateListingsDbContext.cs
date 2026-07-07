@@ -28,6 +28,10 @@ public sealed class PrivateListingsDbContext(DbContextOptions<PrivateListingsDbC
 
     public DbSet<Message> Messages => Set<Message>();
 
+    public DbSet<ConversationReadState> ConversationReadStates => Set<ConversationReadState>();
+
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+
     public DbSet<Report> Reports => Set<Report>();
 
     public DbSet<Recommendation> Recommendations => Set<Recommendation>();

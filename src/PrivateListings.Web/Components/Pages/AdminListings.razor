@@ -1,0 +1,145 @@
+@page "/admin/annonces"
+@attribute [Authorize(Policy = BackOfficePolicies.Moderation)]
+
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject IBackOfficeService BackOfficeService
+
+<PageTitle>Annonces - Back-office</PageTitle>
+
+<AdminShell Title="Annonces" Subtitle="Recherche, statut et actions de modération sur les annonces." Active="listings">
+    <ChildContent>
+        <form method="get" class="admin-filter-bar">
+            <label class="field-label" for="q">Recherche</label>
+            <input id="q" name="q" value="@Q" class="field-input" placeholder="Titre, catégorie ou propriétaire" />
+
+            <label class="field-label" for="status">Statut</label>
+            <select id="status" name="status" class="field-input">
+                <option value="">Tous</option>
+                @foreach (var status in Enum.GetValues<ListingStatus>())
+                {
+                    <option value="@status" selected="@(Status == status.ToString())">@BackOfficeDisplay.ListingStatusLabel(status)</option>
+                }
+            </select>
+
+            <button type="submit" class="primary-button">Filtrer</button>
+            <a class="secondary-link-button" href="/admin/annonces">Réinitialiser</a>
+        </form>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Annonce</th>
+                        <th>Statut</th>
+                        <th>Type</th>
+                        <th>Catégorie</th>
+                        <th>Propriétaire</th>
+                        <th>Dates</th>
+                        <th class="admin-actions-cell">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var listing in listings.Items)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@listing.Title</strong>
+                                <small>@listing.Id</small>
+                            </td>
+                            <td>
+                                <span class="status-pill @BackOfficeDisplay.ListingStatusClass(listing.Status)">
+                                    @BackOfficeDisplay.ListingStatusLabel(listing.Status)
+                                </span>
+                            </td>
+                            <td>@ListingDisplay.TypeLabel(listing.Type)</td>
+                            <td>@listing.CategoryName</td>
+                            <td>@listing.OwnerDisplayName</td>
+                            <td>
+                                <small>Créée : @BackOfficeDisplay.FormatDate(listing.CreatedAt)</small>
+                                @if (listing.PublishedAt.HasValue)
+                                {
+                                    <small>Publiée : @BackOfficeDisplay.FormatDate(listing.PublishedAt)</small>
+                                }
+                            </td>
+                            <td class="admin-actions-cell admin-action-stack">
+                                <a class="secondary-link-button" href="@($"/annonces/{listing.Id.Value:D}")">Voir</a>
+                                @if (listing.Status is not ListingStatus.Suspended and not ListingStatus.Deleted)
+                                {
+                                    <form method="post" action="@($"/admin/actions/listings/{listing.Id.Value:D}/suspend")" class="admin-row-form">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                                        <input name="reason" class="field-input" maxlength="500" placeholder="Motif" required />
+                                        <label class="confirm-line">
+                                            <input type="checkbox" name="confirm" value="true" required />
+                                            <span>Confirmer</span>
+                                        </label>
+                                        <button type="submit" class="danger-button">Suspendre</button>
+                                    </form>
+                                }
+                                <AuthorizeView Policy="@BackOfficePolicies.Admin">
+                                    <Authorized>
+                                        @if (listing.Status != ListingStatus.Deleted)
+                                        {
+                                            <form method="post" action="@($"/admin/actions/listings/{listing.Id.Value:D}/delete")" class="admin-row-form">
+                                                <AntiforgeryToken />
+                                                <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                                                <input name="reason" class="field-input" maxlength="500" placeholder="Note interne facultative" />
+                                                <label class="confirm-line">
+                                                    <input type="checkbox" name="confirm" value="true" required />
+                                                    <span>Confirmer</span>
+                                                </label>
+                                                <button type="submit" class="danger-button">Supprimer</button>
+                                            </form>
+                                        }
+                                    </Authorized>
+                                </AuthorizeView>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <AdminPagination CurrentPage="@listings.Page" TotalPages="@listings.TotalPages" BuildUrl="BuildPageUrl" />
+    </ChildContent>
+</AdminShell>
+
+@code {
+    private BackOfficePagedResult<BackOfficeListingSummary> listings = new([], 1, 20, 0);
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? Status { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    private int Page { get; set; } = 1;
+
+    private string ReturnUrl => $"{HttpContext.Request.Path}{HttpContext.Request.QueryString}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        listings = await BackOfficeService.ListListingsAsync(new BackOfficeListingQuery(
+            Q,
+            ParseStatus(Status),
+            Page));
+    }
+
+    private string BuildPageUrl(int page)
+        => QueryHelpers.AddQueryString(
+            "/admin/annonces",
+            new Dictionary<string, string?>
+            {
+                ["q"] = Q,
+                ["status"] = Status,
+                ["page"] = page.ToString()
+            });
+
+    private static ListingStatus? ParseStatus(string? value)
+        => Enum.TryParse<ListingStatus>(value, ignoreCase: false, out var status) ? status : null;
+}

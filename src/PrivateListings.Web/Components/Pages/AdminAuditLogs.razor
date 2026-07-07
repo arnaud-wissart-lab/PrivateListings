@@ -1,0 +1,86 @@
+@page "/admin/audit"
+@attribute [Authorize(Policy = BackOfficePolicies.Admin)]
+
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject IBackOfficeService BackOfficeService
+
+<PageTitle>AuditLogs - Back-office</PageTitle>
+
+<AdminShell Title="AuditLogs" Subtitle="Journal des actions sensibles et événements de sécurité." Active="audit">
+    <ChildContent>
+        <form method="get" class="admin-filter-bar">
+            <label class="field-label" for="q">Recherche</label>
+            <input id="q" name="q" value="@Q" class="field-input" placeholder="Action, acteur ou métadonnée" />
+            <button type="submit" class="primary-button">Rechercher</button>
+            <a class="secondary-link-button" href="/admin/audit">Réinitialiser</a>
+        </form>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Acteur</th>
+                        <th>Sujet</th>
+                        <th>Métadonnées</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var auditLog in auditLogs.Items)
+                    {
+                        <tr>
+                            <td>@BackOfficeDisplay.FormatDate(auditLog.OccurredAt)</td>
+                            <td><strong>@auditLog.Action</strong></td>
+                            <td>@(auditLog.ActorDisplayName ?? "Système")</td>
+                            <td>
+                                <span>@auditLog.SubjectType</span>
+                                @if (auditLog.SubjectId.HasValue)
+                                {
+                                    <small>@auditLog.SubjectId.Value</small>
+                                }
+                            </td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(auditLog.Metadata))
+                                {
+                                    <span class="admin-muted">Aucune</span>
+                                }
+                                else
+                                {
+                                    <code class="admin-code">@auditLog.Metadata</code>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <AdminPagination CurrentPage="@auditLogs.Page" TotalPages="@auditLogs.TotalPages" BuildUrl="BuildPageUrl" />
+    </ChildContent>
+</AdminShell>
+
+@code {
+    private BackOfficePagedResult<BackOfficeAuditLogSummary> auditLogs = new([], 1, 20, 0);
+
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    private int Page { get; set; } = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        auditLogs = await BackOfficeService.ListAuditLogsAsync(new BackOfficePagedQuery(Q, Page));
+    }
+
+    private string BuildPageUrl(int page)
+        => QueryHelpers.AddQueryString(
+            "/admin/audit",
+            new Dictionary<string, string?>
+            {
+                ["q"] = Q,
+                ["page"] = page.ToString()
+            });
+}

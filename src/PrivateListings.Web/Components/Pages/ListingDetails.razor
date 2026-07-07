@@ -53,6 +53,8 @@
             }
         </div>
 
+        <StatusMessage />
+
         <div class="listing-detail-layout">
             <div>
                 @if (details.Images.Count == 0)
@@ -100,6 +102,20 @@
                     </div>
                 </dl>
 
+                @if (canReply)
+                {
+                    <form method="post" action="@($"/annonces/{details.Id.Value:D}/repondre")" class="listing-reply-form">
+                        <AntiforgeryToken />
+                        <label class="field-label" for="listing-reply-body">Message</label>
+                        <textarea id="listing-reply-body" name="body" class="field-input textarea-input" maxlength="4000" required></textarea>
+                        <button type="submit" class="primary-button">Répondre</button>
+                    </form>
+                }
+                else if (!actorProfileId.HasValue && details.Status == ListingStatus.Published)
+                {
+                    <a class="primary-link-button" href="/login">Se connecter pour répondre</a>
+                }
+
                 @if (canManage)
                 {
                     <form method="post" action="@($"/annonces/{details.Id.Value:D}/supprimer")">
@@ -114,6 +130,10 @@
                         <AntiforgeryToken />
                         <label class="field-label" for="suspension-reason">Motif de suspension</label>
                         <input id="suspension-reason" name="reason" class="field-input" maxlength="500" required />
+                        <label class="confirm-line">
+                            <input type="checkbox" name="confirm" value="true" required />
+                            <span>Je confirme la suspension de cette annonce.</span>
+                        </label>
                         <button type="submit" class="danger-button">Suspendre</button>
                     </form>
                 }
@@ -132,6 +152,7 @@
     private UserProfileId? actorProfileId;
     private bool canManage;
     private bool canModerate;
+    private bool canReply;
 
     [Parameter]
     public Guid ListingId { get; set; }
@@ -148,6 +169,10 @@
 
         details ??= await ListingService.GetPublicDetailsAsync(listingId);
         canManage = actorProfileId.HasValue && details?.OwnerId == actorProfileId.Value;
+        canReply = actorProfileId.HasValue
+            && details is not null
+            && details.Status == ListingStatus.Published
+            && details.OwnerId != actorProfileId.Value;
     }
 
     private async Task<(UserProfileId? ProfileId, bool CanModerate)> ReadCurrentUserAsync()

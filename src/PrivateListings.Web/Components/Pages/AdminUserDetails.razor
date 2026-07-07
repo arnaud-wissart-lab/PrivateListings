@@ -1,0 +1,168 @@
+@page "/admin/utilisateurs/{UserId:guid}"
+@attribute [Authorize(Policy = BackOfficePolicies.Admin)]
+
+@inject IBackOfficeService BackOfficeService
+
+<PageTitle>Profil utilisateur - Back-office</PageTitle>
+
+<AdminShell Title="Profil technique utilisateur" Subtitle="Informations limitées au diagnostic et aux actions d'administration." Active="users">
+    <ChildContent>
+        @if (user is null)
+        {
+            <div class="admin-empty">
+                <h2>Utilisateur introuvable</h2>
+                <a class="secondary-link-button" href="/admin/utilisateurs">Retour à la liste</a>
+            </div>
+        }
+        else
+        {
+            <div class="admin-detail-grid">
+                <section class="admin-panel">
+                    <h2>Identité technique</h2>
+                    <dl class="admin-facts">
+                        <div>
+                            <dt>Nom affiché</dt>
+                            <dd>@user.DisplayName</dd>
+                        </div>
+                        <div>
+                            <dt>Email</dt>
+                            <dd>@user.Email</dd>
+                        </div>
+                        <div>
+                            <dt>Identifiant Identity</dt>
+                            <dd>@user.UserId</dd>
+                        </div>
+                        <div>
+                            <dt>Profil domaine</dt>
+                            <dd>@user.UserProfileId</dd>
+                        </div>
+                        <div>
+                            <dt>Création</dt>
+                            <dd>@BackOfficeDisplay.FormatDate(user.CreatedAt)</dd>
+                        </div>
+                        <div>
+                            <dt>Email confirmé</dt>
+                            <dd>@(user.EmailConfirmed ? "Oui" : "Non")</dd>
+                        </div>
+                        <div>
+                            <dt>2FA active</dt>
+                            <dd>@(user.TwoFactorEnabled ? "Oui" : "Non")</dd>
+                        </div>
+                        <div>
+                            <dt>Verrouillage</dt>
+                            <dd>@(user.IsLockedOut ? $"Oui, jusqu'au {BackOfficeDisplay.FormatDate(user.LockoutEnd)}" : "Non")</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="admin-panel">
+                    <h2>Statut</h2>
+                    <p>
+                        <span class="status-pill @BackOfficeDisplay.UserStatusClass(user.SuspendedAt)">
+                            @BackOfficeDisplay.UserStatusLabel(user.SuspendedAt)
+                        </span>
+                    </p>
+                    @if (user.SuspendedAt.HasValue)
+                    {
+                        <p class="admin-muted">Suspendu le @BackOfficeDisplay.FormatDate(user.SuspendedAt).</p>
+                        @if (!string.IsNullOrWhiteSpace(user.SuspensionReason))
+                        {
+                            <p>@user.SuspensionReason</p>
+                        }
+                        <form method="post" action="@($"/admin/actions/users/{user.UserId:D}/reactivate")" class="admin-stack-form">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                            <label class="confirm-line">
+                                <input type="checkbox" name="confirm" value="true" required />
+                                <span>Je confirme la réactivation de ce compte.</span>
+                            </label>
+                            <button type="submit" class="primary-button">Réactiver</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form method="post" action="@($"/admin/actions/users/{user.UserId:D}/suspend")" class="admin-stack-form">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                            <label class="field-label" for="reason">Motif</label>
+                            <textarea id="reason" name="reason" class="field-input textarea-input" maxlength="500" required></textarea>
+                            <label class="confirm-line">
+                                <input type="checkbox" name="confirm" value="true" required />
+                                <span>Je confirme la suspension de ce compte.</span>
+                            </label>
+                            <button type="submit" class="danger-button">Suspendre</button>
+                        </form>
+                    }
+                </section>
+
+                <section class="admin-panel">
+                    <h2>Rôle</h2>
+                    <p>@FormatRoles(user.Roles)</p>
+                    <form method="post" action="@($"/admin/actions/users/{user.UserId:D}/role")" class="admin-stack-form">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                        <label class="field-label" for="roleName">Rôle cible</label>
+                        <select id="roleName" name="roleName" class="field-input">
+                            @foreach (var role in AllowedRoles)
+                            {
+                                <option value="@role" selected="@user.Roles.Contains(role)">@BackOfficeDisplay.RoleLabel(role)</option>
+                            }
+                        </select>
+                        <label class="confirm-line">
+                            <input type="checkbox" name="confirm" value="true" required />
+                            <span>Je confirme le changement de rôle.</span>
+                        </label>
+                        <button type="submit" class="secondary-button">Modifier le rôle</button>
+                    </form>
+                </section>
+
+                <section class="admin-panel">
+                    <h2>Indicateurs</h2>
+                    <dl class="admin-facts">
+                        <div>
+                            <dt>Annonces</dt>
+                            <dd>@user.ListingsCount</dd>
+                        </div>
+                        <div>
+                            <dt>Signalements ouverts</dt>
+                            <dd>@user.OpenReportsCount</dd>
+                        </div>
+                        <div>
+                            <dt>AuditLogs acteur</dt>
+                            <dd>@user.AuditLogsCount</dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+        }
+    </ChildContent>
+</AdminShell>
+
+@code {
+    private static readonly string[] AllowedRoles =
+    [
+        PrivateListingsRoleNames.Member,
+        PrivateListingsRoleNames.Moderator,
+        PrivateListingsRoleNames.Admin
+    ];
+
+    private BackOfficeUserDetails? user;
+
+    [Parameter]
+    public Guid UserId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private string ReturnUrl => $"{HttpContext.Request.Path}{HttpContext.Request.QueryString}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        user = await BackOfficeService.GetUserDetailsAsync(UserId);
+    }
+
+    private static string FormatRoles(IReadOnlyList<string> roles)
+        => roles.Count == 0
+            ? "Aucun rôle explicite"
+            : string.Join(", ", roles.Select(BackOfficeDisplay.RoleLabel));
+}

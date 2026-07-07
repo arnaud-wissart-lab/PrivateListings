@@ -57,7 +57,15 @@ internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conve
             .HasForeignKey(message => message.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(conversation => conversation.ReadStates)
+            .WithOne()
+            .HasForeignKey(readState => readState.ConversationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Navigation(conversation => conversation.Messages)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(conversation => conversation.ReadStates)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(conversation => conversation.ListingId)

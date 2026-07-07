@@ -136,6 +136,9 @@ public sealed record ListingOperationResult(
     public static ListingOperationResult Forbidden()
         => new(ListingOperationStatus.Forbidden, Errors: ["Vous n'êtes pas autorisé à modifier cette annonce."]);
 
+    public static ListingOperationResult Forbidden(string error)
+        => new(ListingOperationStatus.Forbidden, Errors: [error]);
+
     public static ListingOperationResult ValidationFailed(params string[] errors)
         => new(ListingOperationStatus.ValidationFailed, Errors: errors);
 

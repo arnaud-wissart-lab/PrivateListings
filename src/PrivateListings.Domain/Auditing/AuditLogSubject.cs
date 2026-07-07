@@ -25,6 +25,18 @@ public readonly record struct AuditLogSubject
         return new AuditLogSubject("Listing", listingId.Value);
     }
 
+    public static AuditLogSubject ForListingCategory(ListingCategoryId listingCategoryId)
+    {
+        Guard.AgainstEmpty(listingCategoryId.Value, nameof(listingCategoryId));
+        return new AuditLogSubject("ListingCategory", listingCategoryId.Value);
+    }
+
+    public static AuditLogSubject ForConversation(ConversationId conversationId)
+    {
+        Guard.AgainstEmpty(conversationId.Value, nameof(conversationId));
+        return new AuditLogSubject("Conversation", conversationId.Value);
+    }
+
     public static AuditLogSubject ForMessage(MessageId messageId)
     {
         Guard.AgainstEmpty(messageId.Value, nameof(messageId));
@@ -35,6 +47,12 @@ public readonly record struct AuditLogSubject
     {
         Guard.AgainstEmpty(userProfileId.Value, nameof(userProfileId));
         return new AuditLogSubject("UserProfile", userProfileId.Value);
+    }
+
+    public static AuditLogSubject ForReport(ReportId reportId)
+    {
+        Guard.AgainstEmpty(reportId.Value, nameof(reportId));
+        return new AuditLogSubject("Report", reportId.Value);
     }
 
     public static AuditLogSubject ForSystem(string type)

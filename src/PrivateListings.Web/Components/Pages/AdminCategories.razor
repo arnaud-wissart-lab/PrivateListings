@@ -1,0 +1,128 @@
+@page "/admin/categories"
+@attribute [Authorize(Policy = BackOfficePolicies.Admin)]
+
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject IBackOfficeService BackOfficeService
+
+<PageTitle>Catégories - Back-office</PageTitle>
+
+<AdminShell Title="Catégories" Subtitle="Gestion minimale des catégories d'annonces." Active="categories">
+    <ChildContent>
+        <section class="admin-panel">
+            <h2>Nouvelle catégorie</h2>
+            <form method="post" action="/admin/actions/categories" class="admin-form-grid">
+                <AntiforgeryToken />
+                <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                <div>
+                    <label class="field-label" for="new-name">Nom</label>
+                    <input id="new-name" name="name" class="field-input" maxlength="80" required />
+                </div>
+                <div>
+                    <label class="field-label" for="new-description">Description</label>
+                    <input id="new-description" name="description" class="field-input" maxlength="500" />
+                </div>
+                <button type="submit" class="primary-button">Créer</button>
+            </form>
+        </section>
+
+        <form method="get" class="admin-filter-bar">
+            <label class="field-label" for="q">Recherche</label>
+            <input id="q" name="q" value="@Q" class="field-input" placeholder="Nom ou description" />
+            <button type="submit" class="primary-button">Rechercher</button>
+            <a class="secondary-link-button" href="/admin/categories">Réinitialiser</a>
+        </form>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Catégorie</th>
+                        <th>Statut</th>
+                        <th>Annonces</th>
+                        <th>Création</th>
+                        <th class="admin-actions-cell">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var category in categories.Items)
+                    {
+                        var toggleAction = $"/admin/actions/categories/{category.Id.Value:D}/{(category.IsActive ? "deactivate" : "activate")}";
+
+                        <tr>
+                            <td>
+                                <strong>@category.Name</strong>
+                                @if (!string.IsNullOrWhiteSpace(category.Description))
+                                {
+                                    <small>@category.Description</small>
+                                }
+                            </td>
+                            <td>
+                                <span class="status-pill @(category.IsActive ? "is-success" : "is-muted")">
+                                    @(category.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td>@category.ListingsCount</td>
+                            <td>@BackOfficeDisplay.FormatDate(category.CreatedAt)</td>
+                            <td class="admin-actions-cell admin-action-stack">
+                                <form method="post" action="@($"/admin/actions/categories/{category.Id.Value:D}/update")" class="admin-row-form">
+                                    <AntiforgeryToken />
+                                    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                                    <input name="name" value="@category.Name" class="field-input" maxlength="80" required />
+                                    <input name="description" value="@category.Description" class="field-input" maxlength="500" />
+                                    <label class="confirm-line">
+                                        <input type="checkbox" name="confirm" value="true" required />
+                                        <span>Confirmer</span>
+                                    </label>
+                                    <button type="submit" class="secondary-button">Enregistrer</button>
+                                </form>
+                                <form method="post" action="@toggleAction" class="admin-row-form">
+                                    <AntiforgeryToken />
+                                    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                                    <label class="confirm-line">
+                                        <input type="checkbox" name="confirm" value="true" required />
+                                        <span>Confirmer</span>
+                                    </label>
+                                    <button type="submit" class="secondary-button">
+                                        @(category.IsActive ? "Désactiver" : "Activer")
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <AdminPagination CurrentPage="@categories.Page" TotalPages="@categories.TotalPages" BuildUrl="BuildPageUrl" />
+    </ChildContent>
+</AdminShell>
+
+@code {
+    private BackOfficePagedResult<BackOfficeCategorySummary> categories = new([], 1, 20, 0);
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    private int Page { get; set; } = 1;
+
+    private string ReturnUrl => $"{HttpContext.Request.Path}{HttpContext.Request.QueryString}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        categories = await BackOfficeService.ListCategoriesAsync(new BackOfficePagedQuery(Q, Page));
+    }
+
+    private string BuildPageUrl(int page)
+        => QueryHelpers.AddQueryString(
+            "/admin/categories",
+            new Dictionary<string, string?>
+            {
+                ["q"] = Q,
+                ["page"] = page.ToString()
+            });
+}

@@ -1,0 +1,157 @@
+@page "/messagerie/{ConversationId:guid}"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Identity
+@using PrivateListings.Infrastructure.Identity
+
+@inject IMessagingService MessagingService
+@inject UserManager<PrivateListingsUser> UserManager
+
+<PageTitle>Conversation</PageTitle>
+
+<section class="messaging-page">
+    @if (currentUser is null)
+    {
+        <div class="listing-empty">
+            <h1>Session introuvable</h1>
+            <p>Reconnectez-vous pour consulter cette conversation.</p>
+            <a class="primary-link-button" href="/login">Connexion</a>
+        </div>
+    }
+    else if (thread is null)
+    {
+        <div class="listing-empty">
+            <h1>Conversation introuvable</h1>
+            <p>Vous n'êtes pas participant de cette conversation ou elle n'existe plus.</p>
+            <a class="secondary-link-button" href="/messagerie">Retour à la messagerie</a>
+        </div>
+    }
+    else
+    {
+        <div class="conversation-thread-header">
+            <div>
+                <a href="/messagerie" class="listing-back-link">Messagerie</a>
+                <h1>@thread.OtherParticipantDisplayName</h1>
+                @if (thread.ListingId.HasValue && !string.IsNullOrWhiteSpace(thread.ListingTitle))
+                {
+                    <a class="conversation-listing-link" href="@($"/annonces/{thread.ListingId.Value.Value:D}")">@thread.ListingTitle</a>
+                }
+            </div>
+
+            <div class="conversation-actions">
+                <form method="post" action="@($"/messagerie/{thread.Id.Value:D}/{(thread.IsUnread ? "lue" : "non-lue")}")">
+                    <AntiforgeryToken />
+                    <button type="submit" class="secondary-button">@(thread.IsUnread ? "Marquer comme lue" : "Marquer comme non lue")</button>
+                </form>
+
+                @if (!thread.IsBlocked)
+                {
+                    <form method="post" action="@($"/messagerie/{thread.Id.Value:D}/bloquer/{thread.OtherParticipantId.Value:D}")">
+                        <AntiforgeryToken />
+                        <button type="submit" class="danger-button">Bloquer</button>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <StatusMessage />
+
+        @if (thread.IsBlocked)
+        {
+            <div class="account-alert is-danger" role="alert">
+                L'envoi de messages est désactivé pour cette conversation.
+            </div>
+        }
+
+        <div class="message-thread" aria-label="Fil de messages">
+            @if (thread.Messages.Count == 0)
+            {
+                <div class="listing-empty">
+                    <h2>Aucun message</h2>
+                    <p>Le fil est prêt à recevoir un premier message.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var message in thread.Messages)
+                {
+                    <article class="message-bubble @(message.IsFromCurrentUser ? "is-own" : null)">
+                        <div class="message-heading">
+                            <span>@message.SenderDisplayName</span>
+                            <time datetime="@message.SentAt.ToString("O")">@FormatDate(message.SentAt)</time>
+                        </div>
+                        <p>@(message.IsDeleted ? "Message supprimé." : message.Body)</p>
+
+                        @if (!message.IsFromCurrentUser && !message.IsDeleted)
+                        {
+                            <details class="message-report">
+                                <summary>Signaler</summary>
+                                <form method="post" action="@($"/messagerie/{thread.Id.Value:D}/messages/{message.Id.Value:D}/signaler")" class="message-report-form">
+                                    <AntiforgeryToken />
+                                    <label class="field-label" for="@($"message-report-reason-{message.Id.Value:N}")">Motif</label>
+                                    <input id="@($"message-report-reason-{message.Id.Value:N}")" name="reason" class="field-input" maxlength="160" required />
+
+                                    <label class="field-label" for="@($"message-report-details-{message.Id.Value:N}")">Détails facultatifs</label>
+                                    <textarea id="@($"message-report-details-{message.Id.Value:N}")" name="details" class="field-input textarea-input" maxlength="2000"></textarea>
+
+                                    <button type="submit" class="secondary-button">Envoyer le signalement</button>
+                                </form>
+                            </details>
+                        }
+                    </article>
+                }
+            }
+        </div>
+
+        @if (!thread.IsBlocked)
+        {
+            <form method="post" action="@($"/messagerie/{thread.Id.Value:D}/messages")" class="message-compose">
+                <AntiforgeryToken />
+                <label class="field-label" for="message-body">Message</label>
+                <textarea id="message-body" name="body" class="field-input textarea-input" maxlength="4000" required></textarea>
+                <button type="submit" class="primary-button">Envoyer</button>
+            </form>
+        }
+
+        <details class="conversation-report">
+            <summary>Signaler la conversation</summary>
+            <form method="post" action="@($"/messagerie/{thread.Id.Value:D}/signaler")" class="message-report-form">
+                <AntiforgeryToken />
+                <label class="field-label" for="conversation-report-reason">Motif</label>
+                <input id="conversation-report-reason" name="reason" class="field-input" maxlength="160" required />
+
+                <label class="field-label" for="conversation-report-details">Détails facultatifs</label>
+                <textarea id="conversation-report-details" name="details" class="field-input textarea-input" maxlength="2000"></textarea>
+
+                <button type="submit" class="secondary-button">Envoyer le signalement</button>
+            </form>
+        </details>
+    }
+</section>
+
+@code {
+    private PrivateListingsUser? currentUser;
+    private PrivateListings.Application.Messaging.ConversationThread? thread;
+
+    [Parameter]
+    public Guid ConversationId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await UserManager.GetUserAsync(HttpContext.User);
+        if (currentUser is null)
+        {
+            return;
+        }
+
+        thread = await MessagingService.GetConversationAsync(
+            PrivateListings.Domain.Common.ConversationId.From(ConversationId),
+            currentUser.UserProfileId);
+    }
+
+    private static string FormatDate(DateTimeOffset value)
+        => value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+}

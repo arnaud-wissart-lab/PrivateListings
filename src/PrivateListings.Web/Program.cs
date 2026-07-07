@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Identity;
 using PrivateListings.Application;
 using PrivateListings.Infrastructure;
 using PrivateListings.Infrastructure.Identity;
+using PrivateListings.Web.Admin;
 using PrivateListings.Web.Components;
 using PrivateListings.Web.Components.Account;
 using PrivateListings.Web.Listings;
+using PrivateListings.Web.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +37,11 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/login";
     options.AccessDeniedPath = "/access-denied";
     options.SlidingExpiration = true;
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPrivateListingsBackOfficePolicies();
 });
 
 // Ajoute les services Blazor.
@@ -68,6 +75,8 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapAdditionalIdentityEndpoints();
 app.MapListingEndpoints();
+app.MapMessagingEndpoints();
+app.MapBackOfficeEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();
