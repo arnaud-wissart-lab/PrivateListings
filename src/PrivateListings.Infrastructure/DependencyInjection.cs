@@ -29,6 +29,30 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.AddPrivateListingsInfrastructureCore(configuration, environment);
+        services.AddPrivateListingsWebInfrastructure();
+
+        return services;
+    }
+
+    public static IServiceCollection AddPrivateListingsWorkerInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment? environment = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddPrivateListingsInfrastructureCore(configuration, environment);
+
+        return services;
+    }
+
+    private static IServiceCollection AddPrivateListingsInfrastructureCore(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment? environment)
+    {
         services
             .Configure<PrivateListingsPersistenceOptions>(
                 configuration.GetSection(PrivateListingsPersistenceOptions.SectionName))
@@ -49,6 +73,7 @@ public static class DependencyInjection
             .Configure<MessagingSpamOptions>(
                 configuration.GetSection(MessagingSpamOptions.SectionName));
 
+        services.TryAddSingleton<IConfiguration>(configuration);
         services.TryAddSingleton(TimeProvider.System);
         ConfigureDataProtection(services, configuration);
 
@@ -79,21 +104,27 @@ public static class DependencyInjection
                     npgsql.EnableRetryOnFailure(
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(10),
-                        errorCodesToAdd: null);
+                errorCodesToAdd: null);
                 }));
 
         services.AddScoped<PrivateListingsReferenceDataSeeder>();
-        services.AddScoped<PrivateListingsIdentitySeeder>();
-        services.AddScoped<PrivateListingsDemoDataSeeder>();
-        services.AddScoped<PrivateListingsDatabaseInitializer>();
         services.AddScoped<AccountSecurityTokenStore>();
-        services.AddScoped<IUserAccountService, IdentityUserAccountService>();
-        services.AddScoped<IBackOfficeService, EfBackOfficeService>();
         services.AddScoped<IListingRepository, EfListingRepository>();
         services.AddScoped<IMessagingRepository, EfMessagingRepository>();
         services.AddScoped<IListingImageStorage, FileSystemListingImageStorage>();
-        services.AddScoped<IEmailSender<PrivateListingsUser>, PrivateListingsIdentityEmailSender>();
         services.AddScoped<IMessageNotificationSender, SmtpMessageNotificationSender>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddPrivateListingsWebInfrastructure(this IServiceCollection services)
+    {
+        services.AddScoped<PrivateListingsIdentitySeeder>();
+        services.AddScoped<PrivateListingsDemoDataSeeder>();
+        services.AddScoped<PrivateListingsDatabaseInitializer>();
+        services.AddScoped<IUserAccountService, IdentityUserAccountService>();
+        services.AddScoped<IBackOfficeService, EfBackOfficeService>();
+        services.AddScoped<IEmailSender<PrivateListingsUser>, PrivateListingsIdentityEmailSender>();
         services.AddScoped<IPasswordValidator<PrivateListingsUser>, PrivateListingsPasswordValidator>();
 
         services.Configure<DataProtectionTokenProviderOptions>(options =>

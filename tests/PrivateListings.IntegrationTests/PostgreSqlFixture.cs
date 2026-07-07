@@ -38,18 +38,10 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
 
     public ServiceProvider CreateServiceProvider(
         IHostEnvironment? environment = null,
-        Action<IServiceCollection>? configureServices = null)
+        Action<IServiceCollection>? configureServices = null,
+        bool validateOnBuild = false)
     {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:privatelistingsdb"] = _container.GetConnectionString(),
-                ["PrivateListings:Persistence:ConnectionName"] = "privatelistingsdb",
-                ["PrivateListings:Persistence:ApplyMigrationsOnStartup"] = "false",
-                ["PrivateListings:ReferenceData:SeedInitialCategories"] = "false",
-                ["PrivateListings:DemoSeed:Enabled"] = "false"
-            })
-            .Build();
+        var configuration = CreateConfiguration();
 
         var services = new ServiceCollection();
         services
@@ -65,8 +57,45 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
 
         configureServices?.Invoke(services);
 
-        return services.BuildServiceProvider();
+        return BuildServiceProvider(services, validateOnBuild);
     }
+
+    public ServiceProvider CreateWorkerServiceProvider(
+        IHostEnvironment? environment = null,
+        Action<IServiceCollection>? configureServices = null,
+        bool validateOnBuild = false)
+    {
+        var configuration = CreateConfiguration();
+
+        var services = new ServiceCollection();
+        services
+            .AddPrivateListingsApplication()
+            .AddPrivateListingsWorkerInfrastructure(configuration, environment ?? new TestHostEnvironment("Tests"));
+        services.AddLogging();
+
+        configureServices?.Invoke(services);
+
+        return BuildServiceProvider(services, validateOnBuild);
+    }
+
+    private IConfiguration CreateConfiguration()
+        => new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:privatelistingsdb"] = _container.GetConnectionString(),
+                ["PrivateListings:Persistence:ConnectionName"] = "privatelistingsdb",
+                ["PrivateListings:Persistence:ApplyMigrationsOnStartup"] = "false",
+                ["PrivateListings:ReferenceData:SeedInitialCategories"] = "false",
+                ["PrivateListings:DemoSeed:Enabled"] = "false"
+            })
+            .Build();
+
+    private static ServiceProvider BuildServiceProvider(IServiceCollection services, bool validateOnBuild)
+        => services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateScopes = validateOnBuild,
+            ValidateOnBuild = validateOnBuild
+        });
 
     public async Task ResetDatabaseAsync(CancellationToken cancellationToken = default)
     {

@@ -11,7 +11,7 @@ PrivateListingsProductionConfigurationValidator.Validate(
     validateAllowedHosts: false);
 builder.Services
     .AddPrivateListingsApplication()
-    .AddPrivateListingsInfrastructure(builder.Configuration, builder.Environment);
+    .AddPrivateListingsWorkerInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.Configure<ListingExpirationWorkerOptions>(
     builder.Configuration.GetSection(ListingExpirationWorkerOptions.SectionName));
 builder.Services.AddHostedService<Worker>();
