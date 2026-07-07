@@ -1,0 +1,120 @@
+name: privatelistings
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "${DOCKER_LOG_MAX_SIZE:-10m}"
+    max-file: "${DOCKER_LOG_MAX_FILE:-5}"
+
+x-app-environment: &app-environment
+  ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED: "${ASPNETCORE_FORWARDEDHEADERS_ENABLED:-true}"
+  ASPNETCORE_URLS: "http://+:8080"
+  ConnectionStrings__privatelistingsdb: "Host=privatelistings-postgres;Port=5432;Database=${POSTGRES_DB:-privatelistings};Username=${POSTGRES_USER:-privatelistings};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis};Include Error Detail=false"
+  PrivateListings__Persistence__ApplyMigrationsOnStartup: "${PRIVATE_LISTINGS_APPLY_MIGRATIONS_ON_STARTUP:-false}"
+  PrivateListings__ReferenceData__SeedInitialCategories: "${PRIVATE_LISTINGS_SEED_INITIAL_CATEGORIES:-false}"
+  PrivateListings__DemoSeed__Enabled: "${PRIVATE_LISTINGS_DEMO_SEED_ENABLED:-false}"
+  PrivateListings__DemoSeed__AllowInProduction: "${PRIVATE_LISTINGS_DEMO_SEED_ALLOW_IN_PRODUCTION:-false}"
+  PrivateListings__HealthChecks__ExposeEndpoints: "${PRIVATE_LISTINGS_EXPOSE_HEALTH_ENDPOINTS:-true}"
+  PrivateListings__ListingImages__StorageRoot: "/var/lib/privatelistings/uploads/listing-images"
+  PrivateListings__Email__FromAddress: "${PRIVATE_LISTINGS_EMAIL_FROM_ADDRESS:-noreply@privatelistings.local}"
+  PrivateListings__Email__FromName: "${PRIVATE_LISTINGS_EMAIL_FROM_NAME:-PrivateListings}"
+  PrivateListings__Email__SmtpHost: "${PRIVATE_LISTINGS_SMTP_HOST:-}"
+  PrivateListings__Email__SmtpPort: "${PRIVATE_LISTINGS_SMTP_PORT:-1025}"
+  PrivateListings__Email__UserName: "${PRIVATE_LISTINGS_SMTP_USERNAME:-}"
+  PrivateListings__Email__Password: "${PRIVATE_LISTINGS_SMTP_PASSWORD:-}"
+  PrivateListings__Email__EnableSsl: "${PRIVATE_LISTINGS_SMTP_ENABLE_SSL:-false}"
+  PrivateListings__Worker__ListingExpiration__Interval: "${PRIVATE_LISTINGS_WORKER_LISTING_EXPIRATION_INTERVAL:-00:15:00}"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
+
+services:
+  privatelistings-postgres:
+    image: "${POSTGRES_IMAGE:-postgres:18-alpine}"
+    container_name: privatelistings-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-privatelistings}"
+      POSTGRES_USER: "${POSTGRES_USER:-privatelistings}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}"
+    volumes:
+      - privatelistings_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *default-logging
+    networks:
+      - privatelistings
+
+  privatelistings-web:
+    image: "${PRIVATE_LISTINGS_WEB_IMAGE:?PRIVATE_LISTINGS_WEB_IMAGE est requis}:${PRIVATE_LISTINGS_IMAGE_TAG:-latest}"
+    container_name: privatelistings-web
+    restart: unless-stopped
+    depends_on:
+      privatelistings-postgres:
+        condition: service_healthy
+    environment:
+      <<: *app-environment
+    volumes:
+      - privatelistings_uploads:/var/lib/privatelistings/uploads
+    ports:
+      - "${PRIVATE_LISTINGS_WEB_BIND:-127.0.0.1}:${PRIVATE_LISTINGS_WEB_HTTP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error http://127.0.0.1:8080/alive > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    labels:
+      com.centurylinklabs.watchtower.enable: "${WATCHTOWER_ENABLE:-false}"
+    logging: *default-logging
+    networks:
+      - privatelistings
+
+  privatelistings-worker:
+    image: "${PRIVATE_LISTINGS_WORKER_IMAGE:?PRIVATE_LISTINGS_WORKER_IMAGE est requis}:${PRIVATE_LISTINGS_IMAGE_TAG:-latest}"
+    container_name: privatelistings-worker
+    restart: unless-stopped
+    depends_on:
+      privatelistings-postgres:
+        condition: service_healthy
+    environment:
+      <<: *app-environment
+    volumes:
+      - privatelistings_uploads:/var/lib/privatelistings/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "test -r /proc/1/stat"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      com.centurylinklabs.watchtower.enable: "${WATCHTOWER_ENABLE:-false}"
+    logging: *default-logging
+    networks:
+      - privatelistings
+
+  privatelistings-mailpit:
+    profiles:
+      - nonproduction
+    image: "${MAILPIT_IMAGE:-axllent/mailpit:latest}"
+    container_name: privatelistings-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_BIND:-127.0.0.1}:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_BIND:-127.0.0.1}:${MAILPIT_UI_PORT:-8025}:8025"
+    logging: *default-logging
+    networks:
+      - privatelistings
+
+volumes:
+  privatelistings_postgres_data:
+    name: "${PRIVATE_LISTINGS_POSTGRES_VOLUME:-privatelistings_postgres_data}"
+  privatelistings_uploads:
+    name: "${PRIVATE_LISTINGS_UPLOADS_VOLUME:-privatelistings_uploads}"
+
+networks:
+  privatelistings:
+    name: "${PRIVATE_LISTINGS_NETWORK:-privatelistings}"

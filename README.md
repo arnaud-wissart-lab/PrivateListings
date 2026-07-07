@@ -30,6 +30,7 @@ Le produit vise une expérience sobre, fiable et sécurisée pour des communaut�
 - [Architecture](docs/ARCHITECTURE.md)
 - [Sécurité](docs/SECURITY.md)
 - [Confidentialité](docs/PRIVACY.md)
+- [Déploiement GEEKOM](docs/DEPLOYMENT.md)
 - [Contribution](docs/CONTRIBUTING.md)
 - [Règles projet Codex](AGENTS.md)
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
+    private const string ExposeHealthEndpointsConfigurationKey = "PrivateListings:HealthChecks:ExposeEndpoints";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -110,7 +112,10 @@ public static class Extensions
     {
         // Exposer les endpoints de health check hors développement a des implications de sécurité.
         // Voir https://aka.ms/dotnet/aspire/healthchecks avant de les activer dans d'autres environnements.
-        if (app.Environment.IsDevelopment())
+        var exposeHealthEndpoints = app.Environment.IsDevelopment()
+            || app.Configuration.GetValue<bool>(ExposeHealthEndpointsConfigurationKey);
+
+        if (exposeHealthEndpoints)
         {
             // Tous les health checks doivent passer pour que l'application soit prête à recevoir du trafic.
             app.MapHealthChecks(HealthEndpointPath);

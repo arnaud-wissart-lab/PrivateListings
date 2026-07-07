@@ -277,9 +277,11 @@ Services prévus :
 - volume persistant PostgreSQL ;
 - volume persistant pour images privées ;
 - configuration par variables d'environnement ;
-- stratégie de sauvegarde documentée.
+- stratégie de sauvegarde documentée dans `docs/DEPLOYMENT.md`.
 
 Les images applicatives seront publiées dans GHCR.
+
+Le compose de production n'impose pas de reverse proxy interne. La terminaison TLS et le routage public restent portés par l'infrastructure externe du GEEKOM.
 
 ## Environnements
 
@@ -293,5 +295,4 @@ Les images applicatives seront publiées dans GHCR.
 - Niveau d'interactivité Blazor à long terme : SSR, Interactive Server, Interactive WebAssembly ou mixte.
 - Utilisation effective de Metronic 9.5.0.
 - Reverse proxy cible pour production.
-- Stratégie de sauvegarde PostgreSQL et images.
 - Outil de tests fonctionnels web.
