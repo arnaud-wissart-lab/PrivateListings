@@ -6,7 +6,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.AddServiceDefaults();
 builder.Services
     .AddPrivateListingsApplication()
-    .AddPrivateListingsInfrastructure(builder.Configuration);
+    .AddPrivateListingsInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

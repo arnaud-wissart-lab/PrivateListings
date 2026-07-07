@@ -4,6 +4,11 @@ namespace PrivateListings.Domain.Auditing;
 
 public sealed class AuditLog
 {
+    private AuditLog()
+    {
+        Action = string.Empty;
+    }
+
     private AuditLog(
         AuditLogId id,
         UserProfileId? actorUserProfileId,

@@ -4,6 +4,11 @@ namespace PrivateListings.Domain.Moderation;
 
 public sealed class Report
 {
+    private Report()
+    {
+        Reason = string.Empty;
+    }
+
     private Report(
         ReportId id,
         UserProfileId reporterId,

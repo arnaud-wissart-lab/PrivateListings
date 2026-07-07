@@ -4,6 +4,11 @@ namespace PrivateListings.Domain.Listings;
 
 public sealed class ListingCategory
 {
+    private ListingCategory()
+    {
+        Name = string.Empty;
+    }
+
     private ListingCategory(
         ListingCategoryId id,
         string name,

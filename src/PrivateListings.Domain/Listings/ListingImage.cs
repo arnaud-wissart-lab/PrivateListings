@@ -12,6 +12,13 @@ public sealed class ListingImage
         "image/gif"
     };
 
+    private ListingImage()
+    {
+        StorageKey = string.Empty;
+        OriginalFileName = string.Empty;
+        ContentType = string.Empty;
+    }
+
     private ListingImage(
         ListingImageId id,
         ListingId listingId,

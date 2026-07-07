@@ -8,13 +8,19 @@ builder.AddServiceDefaults();
 
 builder.Services
     .AddPrivateListingsApplication()
-    .AddPrivateListingsInfrastructure(builder.Configuration);
+    .AddPrivateListingsInfrastructure(builder.Configuration, builder.Environment);
 
 // Ajoute les services Blazor.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var initializer = scope.ServiceProvider.GetRequiredService<PrivateListings.Infrastructure.Persistence.PrivateListingsDatabaseInitializer>();
+    await initializer.InitializeAsync();
+}
 
 // Configure le pipeline HTTP.
 if (!app.Environment.IsDevelopment())

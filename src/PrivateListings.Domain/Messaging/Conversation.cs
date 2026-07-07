@@ -7,6 +7,10 @@ public sealed class Conversation
     private readonly List<UserProfileId> _participantIds = [];
     private readonly List<Message> _messages = [];
 
+    private Conversation()
+    {
+    }
+
     private Conversation(
         ConversationId id,
         ListingId? listingId,

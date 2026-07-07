@@ -4,6 +4,10 @@ namespace PrivateListings.Domain.Recommendations;
 
 public sealed class Recommendation
 {
+    private Recommendation()
+    {
+    }
+
     private Recommendation(
         RecommendationId id,
         UserProfileId userProfileId,

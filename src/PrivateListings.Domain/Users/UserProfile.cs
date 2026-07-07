@@ -7,6 +7,11 @@ public sealed class UserProfile
 {
     private readonly List<ConsentRecord> _consentHistory = [];
 
+    private UserProfile()
+    {
+        DisplayName = string.Empty;
+    }
+
     private UserProfile(
         UserProfileId id,
         EmailAddress emailAddress,

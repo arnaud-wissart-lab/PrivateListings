@@ -142,16 +142,19 @@ Le projet `PrivateListings.Domain` porte les premières entités métier sans d�
 - `ConsentRecord` : consentement historisé pour un profil.
 - `DataExportRequest` : demande d'export des données personnelles.
 
-Les comptes applicatifs, jetons temporaires, mappings EF Core et décisions de modération détaillées restent à concevoir dans les couches appropriées.
+Les comptes applicatifs, jetons temporaires et décisions de modération détaillées restent à concevoir dans les couches appropriées.
 
 ### EF Core
 
-- Mappings explicites par entité.
-- Migrations versionnées.
+- La couche `PrivateListings.Infrastructure` contient `PrivateListingsDbContext`, les mappings explicites par entité et la migration initiale PostgreSQL.
+- Les identifiants typés du domaine sont convertis en colonnes `uuid`.
+- Les conversations stockent les participants dans une colonne PostgreSQL `uuid[]` indexée en GIN.
+- Les cibles de signalement et sujets d'audit sont persistés sous forme de clés normalisées indexées.
+- Les migrations sont versionnées dans `src/PrivateListings.Infrastructure/Persistence/Migrations`.
 - Requêtes optimisées pour éviter les problèmes N+1.
 - `AsNoTracking` par défaut pour les lectures sans modification.
 - Transactions explicites pour les cas d'utilisation sensibles.
-- Tests d'intégration avec PostgreSQL réel via conteneur.
+- Les tests d'intégration appliquent les migrations sur PostgreSQL réel via Testcontainers.
 
 ## Authentification et autorisation
 
@@ -249,9 +252,9 @@ Les images applicatives seront publiées dans GHCR.
 ## Environnements
 
 - `Development` : orchestration Aspire, Docker Desktop, données locales jetables.
-- `Demo` : données fictives isolées, aucune donnée réelle.
+- `Demo` : données fictives isolées, seed de démonstration activé, aucune donnée réelle.
 - `Staging` : proche production, utilisé pour valider migrations et déploiement.
-- `Production` : Docker Compose sur mini-PC GEEKOM.
+- `Production` : Docker Compose sur mini-PC GEEKOM, migrations et seed démo désactivés par défaut.
 
 ## Décisions à confirmer avant scaffold
 

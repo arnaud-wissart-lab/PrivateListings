@@ -4,6 +4,11 @@ namespace PrivateListings.Domain.Messaging;
 
 public sealed class Message
 {
+    private Message()
+    {
+        Body = string.Empty;
+    }
+
     private Message(
         MessageId id,
         ConversationId conversationId,

@@ -6,6 +6,12 @@ public sealed class Listing
 {
     private readonly List<ListingImage> _images = [];
 
+    private Listing()
+    {
+        Title = string.Empty;
+        Description = string.Empty;
+    }
+
     private Listing(
         ListingId id,
         UserProfileId ownerId,

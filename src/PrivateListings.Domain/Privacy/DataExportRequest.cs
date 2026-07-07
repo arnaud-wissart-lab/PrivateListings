@@ -4,6 +4,10 @@ namespace PrivateListings.Domain.Privacy;
 
 public sealed class DataExportRequest
 {
+    private DataExportRequest()
+    {
+    }
+
     private DataExportRequest(
         DataExportRequestId id,
         UserProfileId userProfileId,

@@ -4,6 +4,12 @@ namespace PrivateListings.Domain.Privacy;
 
 public sealed class ConsentRecord
 {
+    private ConsentRecord()
+    {
+        PolicyVersion = string.Empty;
+        Source = string.Empty;
+    }
+
     private ConsentRecord(
         ConsentRecordId id,
         UserProfileId userProfileId,
