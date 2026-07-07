@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -8,6 +9,7 @@ using PrivateListings.Application.Authentication;
 using PrivateListings.Application.BackOffice;
 using PrivateListings.Application.Listings;
 using PrivateListings.Application.Messaging;
+using PrivateListings.Infrastructure.Configuration;
 using PrivateListings.Infrastructure.BackOffice;
 using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Infrastructure.Messaging;
@@ -34,6 +36,8 @@ public static class DependencyInjection
                 configuration.GetSection(PrivateListingsReferenceDataOptions.SectionName))
             .Configure<PrivateListingsDemoSeedOptions>(
                 configuration.GetSection(PrivateListingsDemoSeedOptions.SectionName))
+            .Configure<PrivateListingsDataProtectionOptions>(
+                configuration.GetSection(PrivateListingsDataProtectionOptions.SectionName))
             .Configure<PrivateListingsEmailOptions>(
                 configuration.GetSection(PrivateListingsEmailOptions.SectionName))
             .Configure<ListingImageOptions>(
@@ -46,6 +50,7 @@ public static class DependencyInjection
                 configuration.GetSection(MessagingSpamOptions.SectionName));
 
         services.TryAddSingleton(TimeProvider.System);
+        ConfigureDataProtection(services, configuration);
 
         if (environment is not null)
         {
@@ -117,5 +122,22 @@ public static class DependencyInjection
             .AddDefaultTokenProviders();
 
         return services;
+    }
+
+    private static void ConfigureDataProtection(IServiceCollection services, IConfiguration configuration)
+    {
+        var dataProtectionBuilder = services
+            .AddDataProtection()
+            .SetApplicationName("PrivateListings");
+
+        var options = configuration
+            .GetSection(PrivateListingsDataProtectionOptions.SectionName)
+            .Get<PrivateListingsDataProtectionOptions>()
+            ?? new PrivateListingsDataProtectionOptions();
+
+        if (!string.IsNullOrWhiteSpace(options.KeysPath))
+        {
+            dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(options.KeysPath));
+        }
     }
 }

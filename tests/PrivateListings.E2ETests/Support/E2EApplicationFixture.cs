@@ -7,7 +7,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -156,9 +155,6 @@ public sealed class E2EApplicationFixture : IAsyncLifetime, IDisposable
     {
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
-        services.AddDataProtection()
-            .SetApplicationName("PrivateListings.E2ETests")
-            .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(ArtifactDirectory, "data-protection")));
         services
             .AddPrivateListingsApplication()
             .AddPrivateListingsInfrastructure(BuildConfiguration(), new TestHostEnvironment(EnvironmentName, RepositoryRoot));
@@ -175,6 +171,7 @@ public sealed class E2EApplicationFixture : IAsyncLifetime, IDisposable
         => new()
         {
             ["ConnectionStrings:privatelistingsdb"] = _postgres.GetConnectionString(),
+            ["PrivateListings:DataProtection:KeysPath"] = Path.Combine(ArtifactDirectory, "data-protection"),
             ["PrivateListings:Persistence:ConnectionName"] = "privatelistingsdb",
             ["PrivateListings:Persistence:ApplyMigrationsOnStartup"] = "true",
             ["PrivateListings:ReferenceData:SeedInitialCategories"] = "true",
@@ -265,6 +262,7 @@ public sealed class E2EApplicationFixture : IAsyncLifetime, IDisposable
         environment["ASPNETCORE_ENVIRONMENT"] = EnvironmentName;
         environment["DOTNET_ENVIRONMENT"] = EnvironmentName;
         environment["ASPNETCORE_URLS"] = BaseAddress.ToString();
+        environment["PrivateListings__PublicBaseUrl"] = BaseAddress.ToString().TrimEnd('/');
         environment["ASPNETCORE_Kestrel__Certificates__Default__Path"] = _certificatePath;
         environment["ASPNETCORE_Kestrel__Certificates__Default__Password"] = _certificatePassword;
         environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";

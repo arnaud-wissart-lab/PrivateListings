@@ -18,6 +18,9 @@ public sealed class SecurityE2ETests(E2EApplicationFixture fixture) : E2ETestBas
             Assert.Equal("nosniff", headers["x-content-type-options"]);
             Assert.Equal("DENY", headers["x-frame-options"]);
             Assert.Equal("strict-origin-when-cross-origin", headers["referrer-policy"]);
+            Assert.Contains("default-src 'self'", headers["content-security-policy"], StringComparison.Ordinal);
+            Assert.Contains("connect-src 'self' ws: wss:", headers["content-security-policy"], StringComparison.Ordinal);
+            Assert.Contains("frame-ancestors 'none'", headers["content-security-policy"], StringComparison.Ordinal);
             Assert.Contains("camera=()", headers["permissions-policy"], StringComparison.Ordinal);
             Assert.Contains("geolocation=()", headers["permissions-policy"], StringComparison.Ordinal);
             Assert.Contains("microphone=()", headers["permissions-policy"], StringComparison.Ordinal);

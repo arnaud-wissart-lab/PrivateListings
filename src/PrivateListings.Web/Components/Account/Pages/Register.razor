@@ -3,10 +3,11 @@
 
 @using System.ComponentModel.DataAnnotations
 @using PrivateListings.Web.Components.Account
+@using PrivateListings.Web.PublicUrls
 
-@inject NavigationManager NavigationManager
 @inject IUserAccountService AccountService
 @inject IdentityRedirectManager RedirectManager
+@inject IPublicUrlBuilder PublicUrlBuilder
 
 <PageTitle>Inscription</PageTitle>
 
@@ -66,7 +67,7 @@
             Input.Email,
             Input.DisplayName,
             Input.Password,
-            NavigationManager.ToAbsoluteUri("confirm-email").AbsoluteUri,
+            PublicUrlBuilder.BuildAbsoluteUrl("/confirm-email"),
             BuildRequestContext()));
 
         if (result.Status == AccountOperationStatus.RequiresEmailConfirmation)

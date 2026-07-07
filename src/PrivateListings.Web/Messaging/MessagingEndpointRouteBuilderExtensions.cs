@@ -5,6 +5,7 @@ using PrivateListings.Application.Messaging;
 using PrivateListings.Domain.Common;
 using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Web.Components.Account;
+using PrivateListings.Web.PublicUrls;
 
 namespace PrivateListings.Web.Messaging;
 
@@ -34,6 +35,7 @@ internal static class MessagingEndpointRouteBuilderExtensions
         HttpContext context,
         IAntiforgery antiforgery,
         IMessagingService messagingService,
+        IPublicUrlBuilder publicUrlBuilder,
         UserManager<PrivateListingsUser> userManager,
         CancellationToken cancellationToken)
     {
@@ -51,7 +53,7 @@ internal static class MessagingEndpointRouteBuilderExtensions
                     user.UserProfileId,
                     ListingId.From(listingId),
                     body,
-                    BuildRequestContext(context)),
+                    BuildRequestContext(context, publicUrlBuilder)),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -68,6 +70,7 @@ internal static class MessagingEndpointRouteBuilderExtensions
         HttpContext context,
         IAntiforgery antiforgery,
         IMessagingService messagingService,
+        IPublicUrlBuilder publicUrlBuilder,
         UserManager<PrivateListingsUser> userManager,
         CancellationToken cancellationToken)
     {
@@ -85,7 +88,7 @@ internal static class MessagingEndpointRouteBuilderExtensions
                     user.UserProfileId,
                     ConversationId.From(conversationId),
                     body,
-                    BuildRequestContext(context)),
+                    BuildRequestContext(context, publicUrlBuilder)),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -257,14 +260,13 @@ internal static class MessagingEndpointRouteBuilderExtensions
             FormatResult(result, "Utilisateur bloqué."));
     }
 
-    private static MessagingRequestContext BuildRequestContext(HttpContext context)
+    private static MessagingRequestContext BuildRequestContext(
+        HttpContext context,
+        IPublicUrlBuilder publicUrlBuilder)
         => new(
             context.Connection.RemoteIpAddress?.ToString(),
             context.Request.Headers["User-Agent"].ToString(),
-            BuildApplicationBaseUrl(context));
-
-    private static string BuildApplicationBaseUrl(HttpContext context)
-        => $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}";
+            publicUrlBuilder.BuildAbsoluteUrl("/"));
 
     private static string FormatResult(MessagingOperationResult result, string successMessage)
         => result.Succeeded

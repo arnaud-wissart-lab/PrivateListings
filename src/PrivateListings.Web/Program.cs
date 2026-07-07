@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using PrivateListings.Application;
 using PrivateListings.Application.Listings;
 using PrivateListings.Infrastructure;
+using PrivateListings.Infrastructure.Configuration;
 using PrivateListings.Infrastructure.Identity;
 using PrivateListings.Web;
 using PrivateListings.Web.Admin;
@@ -11,10 +12,15 @@ using PrivateListings.Web.Components;
 using PrivateListings.Web.Components.Account;
 using PrivateListings.Web.Listings;
 using PrivateListings.Web.Messaging;
+using PrivateListings.Web.PublicUrls;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+PrivateListingsProductionConfigurationValidator.Validate(
+    builder.Configuration,
+    builder.Environment,
+    validateAllowedHosts: true);
 
 builder.Services
     .AddPrivateListingsApplication()
@@ -22,6 +28,11 @@ builder.Services
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.Configure<PrivateListingsPublicUrlOptions>(
+    builder.Configuration.GetSection(PrivateListingsPublicUrlOptions.SectionName));
+builder.Services.Configure<SecurityHeadersOptions>(
+    builder.Configuration.GetSection(SecurityHeadersOptions.SectionName));
+builder.Services.AddSingleton<IPublicUrlBuilder, PublicUrlBuilder>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 builder.Services.AddAuthentication(options =>

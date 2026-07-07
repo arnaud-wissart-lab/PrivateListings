@@ -10,7 +10,10 @@ x-app-environment: &app-environment
   ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
   ASPNETCORE_FORWARDEDHEADERS_ENABLED: "${ASPNETCORE_FORWARDEDHEADERS_ENABLED:-true}"
   ASPNETCORE_URLS: "http://+:8080"
+  AllowedHosts: "${PRIVATE_LISTINGS_ALLOWED_HOSTS:?PRIVATE_LISTINGS_ALLOWED_HOSTS est requis}"
   ConnectionStrings__privatelistingsdb: "Host=privatelistings-postgres;Port=5432;Database=${POSTGRES_DB:-privatelistings};Username=${POSTGRES_USER:-privatelistings};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis};Include Error Detail=false"
+  PrivateListings__PublicBaseUrl: "${PRIVATE_LISTINGS_PUBLIC_BASE_URL:?PRIVATE_LISTINGS_PUBLIC_BASE_URL est requis}"
+  PrivateListings__DataProtection__KeysPath: "/var/lib/privatelistings/data-protection-keys"
   PrivateListings__Persistence__ApplyMigrationsOnStartup: "${PRIVATE_LISTINGS_APPLY_MIGRATIONS_ON_STARTUP:-false}"
   PrivateListings__ReferenceData__SeedInitialCategories: "${PRIVATE_LISTINGS_SEED_INITIAL_CATEGORIES:-false}"
   PrivateListings__DemoSeed__Enabled: "${PRIVATE_LISTINGS_DEMO_SEED_ENABLED:-false}"
@@ -18,11 +21,12 @@ x-app-environment: &app-environment
   PrivateListings__ListingImages__StorageRoot: "/var/lib/privatelistings/uploads/listing-images"
   PrivateListings__Email__FromAddress: "${PRIVATE_LISTINGS_EMAIL_FROM_ADDRESS:-noreply@privatelistings.local}"
   PrivateListings__Email__FromName: "${PRIVATE_LISTINGS_EMAIL_FROM_NAME:-PrivateListings}"
-  PrivateListings__Email__SmtpHost: "${PRIVATE_LISTINGS_SMTP_HOST:-}"
+  PrivateListings__Email__SmtpHost: "${PRIVATE_LISTINGS_SMTP_HOST:?PRIVATE_LISTINGS_SMTP_HOST est requis}"
   PrivateListings__Email__SmtpPort: "${PRIVATE_LISTINGS_SMTP_PORT:-1025}"
   PrivateListings__Email__UserName: "${PRIVATE_LISTINGS_SMTP_USERNAME:-}"
   PrivateListings__Email__Password: "${PRIVATE_LISTINGS_SMTP_PASSWORD:-}"
   PrivateListings__Email__EnableSsl: "${PRIVATE_LISTINGS_SMTP_ENABLE_SSL:-false}"
+  PrivateListings__SecurityHeaders__ContentSecurityPolicy: "${PRIVATE_LISTINGS_CSP:-default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; form-action 'self'}"
   PrivateListings__Worker__ListingExpiration__Interval: "${PRIVATE_LISTINGS_WORKER_LISTING_EXPIRATION_INTERVAL:-00:15:00}"
   OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
 
@@ -58,6 +62,7 @@ services:
       <<: *app-environment
     volumes:
       - privatelistings_uploads:/var/lib/privatelistings/uploads
+      - privatelistings_data_protection_keys:/var/lib/privatelistings/data-protection-keys
     ports:
       - "${PRIVATE_LISTINGS_WEB_BIND:-127.0.0.1}:${PRIVATE_LISTINGS_WEB_HTTP_PORT:-8080}:8080"
     healthcheck:
@@ -83,6 +88,7 @@ services:
       <<: *app-environment
     volumes:
       - privatelistings_uploads:/var/lib/privatelistings/uploads
+      - privatelistings_data_protection_keys:/var/lib/privatelistings/data-protection-keys
     healthcheck:
       test: ["CMD-SHELL", "test -r /proc/1/stat"]
       interval: 30s
@@ -113,6 +119,8 @@ volumes:
     name: "${PRIVATE_LISTINGS_POSTGRES_VOLUME:-privatelistings_postgres_data}"
   privatelistings_uploads:
     name: "${PRIVATE_LISTINGS_UPLOADS_VOLUME:-privatelistings_uploads}"
+  privatelistings_data_protection_keys:
+    name: "${PRIVATE_LISTINGS_DATA_PROTECTION_KEYS_VOLUME:-privatelistings_data_protection_keys}"
 
 networks:
   privatelistings:
