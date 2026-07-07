@@ -10,21 +10,20 @@
 <PageTitle>Mes annonces</PageTitle>
 
 <section class="listing-page">
-    <div class="listing-toolbar">
-        <div>
-            <h1>Mes annonces</h1>
-            <p class="listing-muted">Brouillons, annonces publiées et annonces expirées.</p>
-        </div>
-        <a class="primary-link-button" href="/annonces/nouvelle">Nouvelle annonce</a>
-    </div>
+    <PageHeader Title="Mes annonces" Subtitle="Brouillons, annonces publiées et annonces expirées.">
+        <Actions>
+            <a class="primary-link-button" href="/annonces/nouvelle">Nouvelle annonce</a>
+        </Actions>
+    </PageHeader>
 
     @if (listings.Count == 0)
     {
-        <div class="listing-empty">
-            <h2>Aucune annonce</h2>
-            <p>Créez un premier brouillon pour préparer votre publication.</p>
-            <a class="primary-link-button" href="/annonces/nouvelle">Créer une annonce</a>
-        </div>
+        <EmptyState Title="Aucune annonce"
+                    Description="Créez un premier brouillon pour préparer votre publication.">
+            <Actions>
+                <a class="primary-link-button" href="/annonces/nouvelle">Créer une annonce</a>
+            </Actions>
+        </EmptyState>
     }
     else
     {

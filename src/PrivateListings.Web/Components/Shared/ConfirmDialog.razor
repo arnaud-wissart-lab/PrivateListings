@@ -1,0 +1,31 @@
+<details class="confirm-dialog @CssClass">
+    <summary>@Summary</summary>
+    <div class="confirm-dialog-panel" role="group" aria-label="@Title">
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            <h2>@Title</h2>
+        }
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <p>@Description</p>
+        }
+        @ChildContent
+    </div>
+</details>
+
+@code {
+    [Parameter]
+    public string Summary { get; set; } = "Confirmer";
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string? Description { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+}

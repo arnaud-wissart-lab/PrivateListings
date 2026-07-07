@@ -16,9 +16,15 @@
             <a class="secondary-link-button" href="/admin/utilisateurs">Réinitialiser</a>
         </form>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
+        @if (users.Items.Count == 0)
+        {
+            <EmptyState Title="Aucun utilisateur"
+                        Description="Aucun compte ne correspond aux critères actuels." />
+        }
+        else
+        {
+            <AdminTable>
+                <HeaderContent>
                     <tr>
                         <th>Nom</th>
                         <th>Rôles</th>
@@ -27,8 +33,8 @@
                         <th>Création</th>
                         <th class="admin-actions-cell">Actions</th>
                     </tr>
-                </thead>
-                <tbody>
+                </HeaderContent>
+                <ChildContent>
                     @foreach (var user in users.Items)
                     {
                         <tr>
@@ -38,9 +44,8 @@
                             </td>
                             <td>@FormatRoles(user.Roles)</td>
                             <td>
-                                <span class="status-pill @BackOfficeDisplay.UserStatusClass(user.SuspendedAt)">
-                                    @BackOfficeDisplay.UserStatusLabel(user.SuspendedAt)
-                                </span>
+                                <StatusBadge CssClass="@BackOfficeDisplay.UserStatusClass(user.SuspendedAt)"
+                                             Text="@BackOfficeDisplay.UserStatusLabel(user.SuspendedAt)" />
                             </td>
                             <td>@(user.EmailConfirmed ? "Oui" : "Non")</td>
                             <td>@BackOfficeDisplay.FormatDate(user.CreatedAt)</td>
@@ -49,9 +54,9 @@
                             </td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                </ChildContent>
+            </AdminTable>
+        }
 
         <AdminPagination CurrentPage="@users.Page" TotalPages="@users.TotalPages" BuildUrl="BuildPageUrl" />
     </ChildContent>

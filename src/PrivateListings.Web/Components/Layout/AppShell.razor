@@ -1,0 +1,23 @@
+<a class="skip-link" href="#main-content">Aller au contenu</a>
+
+<div class="app-shell">
+    <Sidebar />
+    <div class="app-frame">
+        <Topbar />
+        <main id="main-content" class="app-main" tabindex="-1">
+            @ChildContent
+        </main>
+    </div>
+    <MobileNavigation />
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Une erreur non gérée s'est produite.
+    <a href="." class="reload">Recharger</a>
+    <span class="dismiss">×</span>
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

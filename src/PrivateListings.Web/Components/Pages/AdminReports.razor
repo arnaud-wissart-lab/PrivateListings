@@ -26,9 +26,15 @@
             <a class="secondary-link-button" href="/admin/signalements">Réinitialiser</a>
         </form>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
+        @if (reports.Items.Count == 0)
+        {
+            <EmptyState Title="Aucun signalement"
+                        Description="Aucun signalement ne correspond aux critères actuels." />
+        }
+        else
+        {
+            <AdminTable>
+                <HeaderContent>
                     <tr>
                         <th>Signalement</th>
                         <th>Cible</th>
@@ -37,8 +43,8 @@
                         <th>Revue</th>
                         <th class="admin-actions-cell">Traitement</th>
                     </tr>
-                </thead>
-                <tbody>
+                </HeaderContent>
+                <ChildContent>
                     @foreach (var report in reports.Items)
                     {
                         <tr>
@@ -55,9 +61,8 @@
                                 <small>@(report.TargetLabel ?? report.TargetId.ToString("D"))</small>
                             </td>
                             <td>
-                                <span class="status-pill @BackOfficeDisplay.ReportStatusClass(report.Status)">
-                                    @BackOfficeDisplay.ReportStatusLabel(report.Status)
-                                </span>
+                                <StatusBadge CssClass="@BackOfficeDisplay.ReportStatusClass(report.Status)"
+                                             Text="@BackOfficeDisplay.ReportStatusLabel(report.Status)" />
                             </td>
                             <td>@report.ReporterDisplayName</td>
                             <td>
@@ -94,9 +99,9 @@
                             </td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                </ChildContent>
+            </AdminTable>
+        }
 
         <AdminPagination CurrentPage="@reports.Page" TotalPages="@reports.TotalPages" BuildUrl="BuildPageUrl" />
     </ChildContent>

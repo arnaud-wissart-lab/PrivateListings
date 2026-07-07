@@ -1,0 +1,68 @@
+<article class="profile-card">
+    <div class="profile-avatar" aria-hidden="true">@Initials</div>
+    <div class="profile-card-body">
+        <div>
+            <p class="page-eyebrow">Profil</p>
+            <h2>@DisplayName</h2>
+            @if (!string.IsNullOrWhiteSpace(Email))
+            {
+                <p>@Email</p>
+            }
+        </div>
+        <dl class="profile-facts">
+            <div>
+                <dt>Compte</dt>
+                <dd>
+                    <StatusBadge CssClass="@(IsSuspended ? "is-danger" : "is-success")"
+                                 Text="@(IsSuspended ? "Suspendu" : "Actif")" />
+                </dd>
+            </div>
+            <div>
+                <dt>Email</dt>
+                <dd>@(EmailConfirmed ? "Confirmé" : "À confirmer")</dd>
+            </div>
+            <div>
+                <dt>2FA</dt>
+                <dd>@(TwoFactorEnabled ? "Activée" : "Non activée")</dd>
+            </div>
+            <div>
+                <dt>Création</dt>
+                <dd>@CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</dd>
+            </div>
+        </dl>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Email { get; set; }
+
+    [Parameter]
+    public DateTimeOffset CreatedAt { get; set; }
+
+    [Parameter]
+    public bool EmailConfirmed { get; set; }
+
+    [Parameter]
+    public bool TwoFactorEnabled { get; set; }
+
+    [Parameter]
+    public bool IsSuspended { get; set; }
+
+    private string Initials
+    {
+        get
+        {
+            var parts = DisplayName
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Take(2)
+                .Select(part => char.ToUpperInvariant(part[0]))
+                .ToArray();
+
+            return parts.Length == 0 ? "PL" : new string(parts);
+        }
+    }
+}

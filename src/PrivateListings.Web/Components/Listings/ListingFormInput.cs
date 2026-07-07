@@ -31,7 +31,7 @@ public sealed class ListingFormInput
 
     public DateTime? ExpiresAt { get; set; }
 
-    public static ListingFormInput FromDetails(ListingDetails details)
+    public static ListingFormInput FromDetails(PrivateListings.Application.Listings.ListingDetails details)
         => new()
         {
             Title = details.Title,

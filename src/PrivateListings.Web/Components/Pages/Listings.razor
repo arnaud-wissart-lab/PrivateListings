@@ -5,108 +5,29 @@
 <PageTitle>Annonces</PageTitle>
 
 <section class="listing-page">
-    <div class="listing-toolbar">
-        <div>
-            <h1>Annonces</h1>
-            <p class="listing-muted">Objets, services, événements et entraide locale.</p>
-        </div>
-        <AuthorizeView>
-            <Authorized>
-                <a class="primary-link-button" href="/annonces/nouvelle">Nouvelle annonce</a>
-                <a class="secondary-link-button" href="/mes-annonces">Mes annonces</a>
-            </Authorized>
-        </AuthorizeView>
-    </div>
+    <PageHeader Title="Annonces" Subtitle="Objets, services, événements et entraide locale.">
+        <Actions>
+            <AuthorizeView>
+                <Authorized>
+                    <a class="primary-link-button" href="/annonces/nouvelle">Nouvelle annonce</a>
+                    <a class="secondary-link-button" href="/mes-annonces">Mes annonces</a>
+                </Authorized>
+            </AuthorizeView>
+        </Actions>
+    </PageHeader>
 
-    <form method="get" class="listing-filter-panel">
-        <label class="field-label" for="q">Recherche</label>
-        <input id="q" name="q" value="@Q" class="field-input" placeholder="Titre, description, lieu" />
+    <ListingFilters Categories="categories"
+                    Q="@Q"
+                    Type="@Type"
+                    Category="@Category"
+                    Location="@Location"
+                    MinPrice="@MinPrice"
+                    MaxPrice="@MaxPrice"
+                    EventDate="@EventDate" />
 
-        <div class="listing-filter-grid">
-            <div>
-                <label class="field-label" for="type">Type</label>
-                <select id="type" name="type" class="field-input">
-                    <option value="">Tous</option>
-                    @foreach (var listingType in Enum.GetValues<ListingType>())
-                    {
-                        <option value="@listingType" selected="@(Type == listingType.ToString())">@ListingDisplay.TypeLabel(listingType)</option>
-                    }
-                </select>
-            </div>
-            <div>
-                <label class="field-label" for="category">Catégorie</label>
-                <select id="category" name="category" class="field-input">
-                    <option value="">Toutes</option>
-                    @foreach (var category in categories)
-                    {
-                        var value = category.Id.Value.ToString("D");
-                        <option value="@value" selected="@(Category == value)">@category.Name</option>
-                    }
-                </select>
-            </div>
-            <div>
-                <label class="field-label" for="location">Localisation</label>
-                <input id="location" name="location" value="@Location" class="field-input" />
-            </div>
-            <div>
-                <label class="field-label" for="eventDate">Date événement</label>
-                <input id="eventDate" name="eventDate" value="@DateValue(EventDate)" type="date" class="field-input" />
-            </div>
-            <div>
-                <label class="field-label" for="minPrice">Prix min.</label>
-                <input id="minPrice" name="minPrice" value="@MinPrice" type="number" min="0" step="0.01" class="field-input" />
-            </div>
-            <div>
-                <label class="field-label" for="maxPrice">Prix max.</label>
-                <input id="maxPrice" name="maxPrice" value="@MaxPrice" type="number" min="0" step="0.01" class="field-input" />
-            </div>
-        </div>
-
-        <div class="listing-filter-actions">
-            <button type="submit" class="primary-button">Filtrer</button>
-            <a href="/annonces" class="secondary-link-button">Réinitialiser</a>
-        </div>
-    </form>
-
-    @if (listings.Count == 0)
-    {
-        <div class="listing-empty">
-            <h2>Aucune annonce publiée</h2>
-            <p>Modifiez les filtres ou revenez plus tard.</p>
-        </div>
-    }
-    else
-    {
-        <div class="listing-grid">
-            @foreach (var listing in listings)
-            {
-                <article class="listing-card">
-                    <a href="@($"/annonces/{listing.Id.Value:D}")" class="listing-card-media" aria-label="@listing.Title">
-                        @if (listing.CoverImage is null)
-                        {
-                            <span>@ListingDisplay.TypeLabel(listing.Type)</span>
-                        }
-                        else
-                        {
-                            <img src="@ListingDisplay.ImageUrl(listing.CoverImage.Id.Value)" alt="@listing.CoverImage.AltText" loading="lazy" />
-                        }
-                    </a>
-                    <div class="listing-card-body">
-                        <div class="listing-card-meta">
-                            <span>@ListingDisplay.TypeLabel(listing.Type)</span>
-                            <span>@listing.CategoryName</span>
-                        </div>
-                        <h2><a href="@($"/annonces/{listing.Id.Value:D}")">@listing.Title</a></h2>
-                        <p>@listing.Description</p>
-                        <div class="listing-card-footer">
-                            <span>@(listing.ApproximateLocation ?? "Secteur non précisé")</span>
-                            <strong>@ListingDisplay.FormatPrice(listing.Price)</strong>
-                        </div>
-                    </div>
-                </article>
-            }
-        </div>
-    }
+    <ListingGrid Listings="listings"
+                 EmptyTitle="Aucune annonce publiée"
+                 EmptyDescription="Modifiez les filtres ou revenez plus tard." />
 </section>
 
 @code {
@@ -157,7 +78,4 @@
         => value.HasValue
             ? new DateTimeOffset(DateTime.SpecifyKind(value.Value.Date, DateTimeKind.Unspecified), TimeSpan.Zero)
             : null;
-
-    private static string DateValue(DateTime? value)
-        => value.HasValue ? value.Value.ToString("yyyy-MM-dd") : string.Empty;
 }

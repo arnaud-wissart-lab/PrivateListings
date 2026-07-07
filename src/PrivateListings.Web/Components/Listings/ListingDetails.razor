@@ -1,0 +1,147 @@
+@if (Details is not null)
+{
+    <div class="listing-detail-header">
+        <div>
+            <a href="/annonces" class="listing-back-link">Annonces</a>
+            <h1>@Details.Title</h1>
+            <div class="listing-detail-meta">
+                <span>@ListingDisplay.TypeLabel(Details.Type)</span>
+                <span>@Details.CategoryName</span>
+                <StatusBadge CssClass="@ListingDisplay.StatusClass(Details.Status)"
+                             Text="@ListingDisplay.StatusLabel(Details.Status)" />
+            </div>
+        </div>
+
+        @if (CanManage)
+        {
+            <div class="listing-actions">
+                <a class="secondary-link-button" href="@($"/annonces/{Details.Id.Value:D}/modifier")">Modifier</a>
+                @if (Details.Status is ListingStatus.Draft or ListingStatus.Expired)
+                {
+                    <form method="post" action="@($"/annonces/{Details.Id.Value:D}/publier")">
+                        <AntiforgeryToken />
+                        <button type="submit" class="primary-button">Publier</button>
+                    </form>
+                }
+                @if (Details.Status == ListingStatus.Published)
+                {
+                    <form method="post" action="@($"/annonces/{Details.Id.Value:D}/brouillon")">
+                        <AntiforgeryToken />
+                        <button type="submit" class="secondary-button">Passer en brouillon</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="listing-detail-layout">
+        <div>
+            @if (Details.Images.Count == 0)
+            {
+                <div class="listing-detail-placeholder">@ListingDisplay.TypeLabel(Details.Type)</div>
+            }
+            else
+            {
+                <div class="listing-image-gallery">
+                    @foreach (var image in Details.Images)
+                    {
+                        <img src="@ListingDisplay.ImageUrl(image.Id.Value)" alt="@image.AltText" loading="lazy" />
+                    }
+                </div>
+            }
+        </div>
+
+        <aside class="listing-detail-panel">
+            <dl class="listing-facts">
+                <div>
+                    <dt>Prix</dt>
+                    <dd>@ListingDisplay.FormatPrice(Details.Price)</dd>
+                </div>
+                <div>
+                    <dt>Localisation</dt>
+                    <dd>@(Details.ApproximateLocation ?? "Secteur non précisé")</dd>
+                </div>
+                @if (Details.EventDate.HasValue)
+                {
+                    <div>
+                        <dt>Date événement</dt>
+                        <dd>@Details.EventDate.Value.ToString("dd/MM/yyyy")</dd>
+                    </div>
+                }
+                @if (Details.ExpiresAt.HasValue)
+                {
+                    <div>
+                        <dt>Expiration</dt>
+                        <dd>@Details.ExpiresAt.Value.AddDays(-1).ToString("dd/MM/yyyy")</dd>
+                    </div>
+                }
+                <div>
+                    <dt>Propriétaire</dt>
+                    <dd>@Details.OwnerDisplayName</dd>
+                </div>
+            </dl>
+
+            @if (CanReply)
+            {
+                <form method="post" action="@($"/annonces/{Details.Id.Value:D}/repondre")" class="listing-reply-form">
+                    <AntiforgeryToken />
+                    <label class="field-label" for="listing-reply-body">Message</label>
+                    <textarea id="listing-reply-body" name="body" class="field-input textarea-input" maxlength="4000" required></textarea>
+                    <button type="submit" class="primary-button">Répondre</button>
+                </form>
+            }
+            else if (ShowLoginToReply)
+            {
+                <a class="primary-link-button" href="/login">Se connecter pour répondre</a>
+            }
+
+            @if (CanManage)
+            {
+                <ConfirmDialog Summary="Supprimer l'annonce"
+                               Title="Suppression de l'annonce"
+                               Description="Cette action déclenche une suppression logique.">
+                    <form method="post" action="@($"/annonces/{Details.Id.Value:D}/supprimer")">
+                        <AntiforgeryToken />
+                        <button type="submit" class="danger-button">Supprimer l'annonce</button>
+                    </form>
+                </ConfirmDialog>
+            }
+
+            @if (CanModerate && Details.Status != ListingStatus.Suspended)
+            {
+                <form method="post" action="@($"/annonces/{Details.Id.Value:D}/suspendre")" class="listing-moderation-form">
+                    <AntiforgeryToken />
+                    <label class="field-label" for="suspension-reason">Motif de suspension</label>
+                    <input id="suspension-reason" name="reason" class="field-input" maxlength="500" required />
+                    <label class="confirm-line">
+                        <input type="checkbox" name="confirm" value="true" required />
+                        <span>Je confirme la suspension de cette annonce.</span>
+                    </label>
+                    <button type="submit" class="danger-button">Suspendre</button>
+                </form>
+            }
+        </aside>
+    </div>
+
+    <section class="listing-description">
+        <h2>Description</h2>
+        <p>@Details.Description</p>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public PrivateListings.Application.Listings.ListingDetails? Details { get; set; }
+
+    [Parameter]
+    public bool CanManage { get; set; }
+
+    [Parameter]
+    public bool CanModerate { get; set; }
+
+    [Parameter]
+    public bool CanReply { get; set; }
+
+    [Parameter]
+    public bool ShowLoginToReply { get; set; }
+}

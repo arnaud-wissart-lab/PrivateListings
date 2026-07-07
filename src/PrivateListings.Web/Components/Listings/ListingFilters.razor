@@ -1,0 +1,87 @@
+<form method="get" action="@Action" class="listing-filter-panel">
+    <div class="filter-search-row">
+        <div>
+            <label class="field-label" for="@($"{IdPrefix}-q")">Recherche</label>
+            <input id="@($"{IdPrefix}-q")" name="q" value="@Q" class="field-input" placeholder="Titre, description, lieu" />
+        </div>
+        <div class="listing-filter-actions">
+            <button type="submit" class="primary-button">Filtrer</button>
+            <a href="@Action" class="secondary-link-button">Réinitialiser</a>
+        </div>
+    </div>
+
+    <div class="listing-filter-grid">
+        <div>
+            <label class="field-label" for="@($"{IdPrefix}-type")">Type</label>
+            <select id="@($"{IdPrefix}-type")" name="type" class="field-input">
+                <option value="">Tous</option>
+                @foreach (var listingType in Enum.GetValues<ListingType>())
+                {
+                    <option value="@listingType" selected="@(Type == listingType.ToString())">@ListingDisplay.TypeLabel(listingType)</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="field-label" for="@($"{IdPrefix}-category")">Catégorie</label>
+            <select id="@($"{IdPrefix}-category")" name="category" class="field-input">
+                <option value="">Toutes</option>
+                @foreach (var category in Categories)
+                {
+                    var value = category.Id.Value.ToString("D");
+                    <option value="@value" selected="@(Category == value)">@category.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="field-label" for="@($"{IdPrefix}-location")">Localisation</label>
+            <input id="@($"{IdPrefix}-location")" name="location" value="@Location" class="field-input" />
+        </div>
+        <div>
+            <label class="field-label" for="@($"{IdPrefix}-eventDate")">Date événement</label>
+            <input id="@($"{IdPrefix}-eventDate")" name="eventDate" value="@DateValue(EventDate)" type="date" class="field-input" />
+        </div>
+        <div>
+            <label class="field-label" for="@($"{IdPrefix}-minPrice")">Prix min.</label>
+            <input id="@($"{IdPrefix}-minPrice")" name="minPrice" value="@MinPrice" type="number" min="0" step="0.01" class="field-input" />
+        </div>
+        <div>
+            <label class="field-label" for="@($"{IdPrefix}-maxPrice")">Prix max.</label>
+            <input id="@($"{IdPrefix}-maxPrice")" name="maxPrice" value="@MaxPrice" type="number" min="0" step="0.01" class="field-input" />
+        </div>
+    </div>
+</form>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ListingCategoryOption> Categories { get; set; } = [];
+
+    [Parameter]
+    public string Action { get; set; } = "/annonces";
+
+    [Parameter]
+    public string IdPrefix { get; set; } = "listing-filter";
+
+    [Parameter]
+    public string? Q { get; set; }
+
+    [Parameter]
+    public string? Type { get; set; }
+
+    [Parameter]
+    public string? Category { get; set; }
+
+    [Parameter]
+    public string? Location { get; set; }
+
+    [Parameter]
+    public decimal? MinPrice { get; set; }
+
+    [Parameter]
+    public decimal? MaxPrice { get; set; }
+
+    [Parameter]
+    public DateTime? EventDate { get; set; }
+
+    private static string DateValue(DateTime? value)
+        => value.HasValue ? value.Value.ToString("yyyy-MM-dd") : string.Empty;
+}

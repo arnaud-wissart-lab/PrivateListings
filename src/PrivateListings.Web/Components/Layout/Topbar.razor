@@ -1,0 +1,48 @@
+<header class="app-topbar">
+    <div class="topbar-mobile-brand">
+        <a class="sidebar-brand" href="/" aria-label="PrivateListings">
+            <span class="brand-mark" aria-hidden="true">PL</span>
+            <span>PrivateListings</span>
+        </a>
+    </div>
+
+    <form class="topbar-search" method="get" action="/annonces" role="search">
+        <label class="sr-only" for="global-search">Rechercher une annonce</label>
+        <span class="search-icon" aria-hidden="true"></span>
+        <input id="global-search" name="q" type="search" placeholder="Rechercher une annonce, un service, un lieu" />
+    </form>
+
+    <div class="topbar-actions">
+        <AuthorizeView>
+            <Authorized Context="auth">
+                <a class="secondary-link-button topbar-publish" href="/annonces/nouvelle">Publier</a>
+                <div class="user-chip" title="@UserLabel(auth.User.Identity?.Name)">
+                    <span class="user-avatar" aria-hidden="true">@UserInitial(auth.User.Identity?.Name)</span>
+                    <span>
+                        <strong>@UserLabel(auth.User.Identity?.Name)</strong>
+                        <small>Connecté</small>
+                    </span>
+                </div>
+                <form action="/account/logout" method="post" class="logout-form">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="returnUrl" value="" />
+                    <button type="submit" class="ghost-button">Déconnexion</button>
+                </form>
+            </Authorized>
+            <NotAuthorized>
+                <a class="secondary-link-button" href="/login">Connexion</a>
+                <a class="primary-link-button" href="/register">Inscription</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</header>
+
+@code {
+    private static string UserLabel(string? name)
+        => string.IsNullOrWhiteSpace(name) ? "Compte" : name;
+
+    private static string UserInitial(string? name)
+        => string.IsNullOrWhiteSpace(name)
+            ? "C"
+            : char.ToUpperInvariant(name.Trim()[0]).ToString();
+}

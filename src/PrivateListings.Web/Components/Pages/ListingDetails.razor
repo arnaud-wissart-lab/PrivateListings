@@ -12,138 +12,22 @@
 <section class="listing-page">
     @if (details is null)
     {
-        <div class="listing-empty">
-            <h1>Annonce introuvable</h1>
-            <p>L'annonce n'est pas publiée ou n'existe plus.</p>
-            <a class="secondary-link-button" href="/annonces">Retour aux annonces</a>
-        </div>
+        <EmptyState Title="Annonce introuvable"
+                    Description="L'annonce n'est pas publiée ou n'existe plus.">
+            <Actions>
+                <a class="secondary-link-button" href="/annonces">Retour aux annonces</a>
+            </Actions>
+        </EmptyState>
     }
     else
     {
-        <div class="listing-detail-header">
-            <div>
-                <a href="/annonces" class="listing-back-link">Annonces</a>
-                <h1>@details.Title</h1>
-                <div class="listing-detail-meta">
-                    <span>@ListingDisplay.TypeLabel(details.Type)</span>
-                    <span>@details.CategoryName</span>
-                    <span class="status-pill @ListingDisplay.StatusClass(details.Status)">@ListingDisplay.StatusLabel(details.Status)</span>
-                </div>
-            </div>
-
-            @if (canManage)
-            {
-                <div class="listing-actions">
-                    <a class="secondary-link-button" href="@($"/annonces/{details.Id.Value:D}/modifier")">Modifier</a>
-                    @if (details.Status is ListingStatus.Draft or ListingStatus.Expired)
-                    {
-                        <form method="post" action="@($"/annonces/{details.Id.Value:D}/publier")">
-                            <AntiforgeryToken />
-                            <button type="submit" class="primary-button">Publier</button>
-                        </form>
-                    }
-                    @if (details.Status == ListingStatus.Published)
-                    {
-                        <form method="post" action="@($"/annonces/{details.Id.Value:D}/brouillon")">
-                            <AntiforgeryToken />
-                            <button type="submit" class="secondary-button">Passer en brouillon</button>
-                        </form>
-                    }
-                </div>
-            }
-        </div>
-
         <StatusMessage />
 
-        <div class="listing-detail-layout">
-            <div>
-                @if (details.Images.Count == 0)
-                {
-                    <div class="listing-detail-placeholder">@ListingDisplay.TypeLabel(details.Type)</div>
-                }
-                else
-                {
-                    <div class="listing-image-gallery">
-                        @foreach (var image in details.Images)
-                        {
-                            <img src="@ListingDisplay.ImageUrl(image.Id.Value)" alt="@image.AltText" loading="lazy" />
-                        }
-                    </div>
-                }
-            </div>
-
-            <aside class="listing-detail-panel">
-                <dl class="listing-facts">
-                    <div>
-                        <dt>Prix</dt>
-                        <dd>@ListingDisplay.FormatPrice(details.Price)</dd>
-                    </div>
-                    <div>
-                        <dt>Localisation</dt>
-                        <dd>@(details.ApproximateLocation ?? "Secteur non précisé")</dd>
-                    </div>
-                    @if (details.EventDate.HasValue)
-                    {
-                        <div>
-                            <dt>Date événement</dt>
-                            <dd>@details.EventDate.Value.ToString("dd/MM/yyyy")</dd>
-                        </div>
-                    }
-                    @if (details.ExpiresAt.HasValue)
-                    {
-                        <div>
-                            <dt>Expiration</dt>
-                            <dd>@details.ExpiresAt.Value.AddDays(-1).ToString("dd/MM/yyyy")</dd>
-                        </div>
-                    }
-                    <div>
-                        <dt>Propriétaire</dt>
-                        <dd>@details.OwnerDisplayName</dd>
-                    </div>
-                </dl>
-
-                @if (canReply)
-                {
-                    <form method="post" action="@($"/annonces/{details.Id.Value:D}/repondre")" class="listing-reply-form">
-                        <AntiforgeryToken />
-                        <label class="field-label" for="listing-reply-body">Message</label>
-                        <textarea id="listing-reply-body" name="body" class="field-input textarea-input" maxlength="4000" required></textarea>
-                        <button type="submit" class="primary-button">Répondre</button>
-                    </form>
-                }
-                else if (!actorProfileId.HasValue && details.Status == ListingStatus.Published)
-                {
-                    <a class="primary-link-button" href="/login">Se connecter pour répondre</a>
-                }
-
-                @if (canManage)
-                {
-                    <form method="post" action="@($"/annonces/{details.Id.Value:D}/supprimer")">
-                        <AntiforgeryToken />
-                        <button type="submit" class="danger-button">Supprimer l'annonce</button>
-                    </form>
-                }
-
-                @if (canModerate && details.Status != ListingStatus.Suspended)
-                {
-                    <form method="post" action="@($"/annonces/{details.Id.Value:D}/suspendre")" class="listing-moderation-form">
-                        <AntiforgeryToken />
-                        <label class="field-label" for="suspension-reason">Motif de suspension</label>
-                        <input id="suspension-reason" name="reason" class="field-input" maxlength="500" required />
-                        <label class="confirm-line">
-                            <input type="checkbox" name="confirm" value="true" required />
-                            <span>Je confirme la suspension de cette annonce.</span>
-                        </label>
-                        <button type="submit" class="danger-button">Suspendre</button>
-                    </form>
-                }
-            </aside>
-        </div>
-
-        <section class="listing-description">
-            <h2>Description</h2>
-            <p>@details.Description</p>
-        </section>
+        <PrivateListings.Web.Components.Listings.ListingDetails Details="details"
+                                                                 CanManage="@canManage"
+                                                                 CanModerate="@canModerate"
+                                                                 CanReply="@canReply"
+                                                                 ShowLoginToReply="@(!actorProfileId.HasValue && details.Status == ListingStatus.Published)" />
     }
 </section>
 

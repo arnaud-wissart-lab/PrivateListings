@@ -1,0 +1,61 @@
+<div class="mobile-navigation">
+    <details class="mobile-menu">
+        <summary aria-label="Ouvrir le menu mobile">
+            <span class="hamburger" aria-hidden="true"></span>
+        </summary>
+        <nav class="mobile-menu-panel" aria-label="Menu mobile">
+            <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/" Match="NavLinkMatch.All">Tableau de bord</NavLink>
+            <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/annonces">Annonces</NavLink>
+            <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/annonces/nouvelle">Publier</NavLink>
+            <AuthorizeView>
+                <Authorized>
+                    <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/messagerie">Messages</NavLink>
+                    <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/profil">Profil</NavLink>
+                    <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/account-security">Sécurité du compte</NavLink>
+                </Authorized>
+                <NotAuthorized>
+                    <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/login">Connexion</NavLink>
+                    <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/register">Inscription</NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+            <AuthorizeView Policy="@BackOfficePolicies.Moderation">
+                <Authorized>
+                    <NavLink class="mobile-menu-link" ActiveClass="is-active" href="/admin/signalements">Administration</NavLink>
+                </Authorized>
+            </AuthorizeView>
+        </nav>
+    </details>
+
+    <nav class="mobile-bottom-nav" aria-label="Navigation mobile principale">
+        <NavLink class="mobile-bottom-link" ActiveClass="is-active" href="/" Match="NavLinkMatch.All">
+            <span class="nav-icon nav-icon-dashboard" aria-hidden="true"></span>
+            <span>Accueil</span>
+        </NavLink>
+        <NavLink class="mobile-bottom-link" ActiveClass="is-active" href="/annonces">
+            <span class="nav-icon nav-icon-listings" aria-hidden="true"></span>
+            <span>Annonces</span>
+        </NavLink>
+        <NavLink class="mobile-bottom-link is-primary" ActiveClass="is-active" href="/annonces/nouvelle">
+            <span class="nav-icon nav-icon-publish" aria-hidden="true"></span>
+            <span>Publier</span>
+        </NavLink>
+        <AuthorizeView>
+            <Authorized>
+                <NavLink class="mobile-bottom-link" ActiveClass="is-active" href="/messagerie">
+                    <span class="nav-icon nav-icon-messages" aria-hidden="true"></span>
+                    <span>Messages</span>
+                </NavLink>
+                <NavLink class="mobile-bottom-link" ActiveClass="is-active" href="/profil">
+                    <span class="nav-icon nav-icon-profile" aria-hidden="true"></span>
+                    <span>Profil</span>
+                </NavLink>
+            </Authorized>
+            <NotAuthorized>
+                <NavLink class="mobile-bottom-link" ActiveClass="is-active" href="/login">
+                    <span class="nav-icon nav-icon-profile" aria-hidden="true"></span>
+                    <span>Compte</span>
+                </NavLink>
+            </NotAuthorized>
+        </AuthorizeView>
+    </nav>
+</div>

@@ -1,0 +1,34 @@
+@if (Listings.Count == 0)
+{
+    <EmptyState Title="@EmptyTitle" Description="@EmptyDescription">
+        <Actions>
+            @EmptyActions
+        </Actions>
+    </EmptyState>
+}
+else
+{
+    <div class="listing-grid">
+        @foreach (var listing in Listings)
+        {
+            <ListingCard Listing="listing" ShowStatus="@ShowStatus" />
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ListingSummary> Listings { get; set; } = [];
+
+    [Parameter]
+    public string EmptyTitle { get; set; } = "Aucune annonce";
+
+    [Parameter]
+    public string EmptyDescription { get; set; } = "Modifiez les filtres ou revenez plus tard.";
+
+    [Parameter]
+    public RenderFragment? EmptyActions { get; set; }
+
+    [Parameter]
+    public bool ShowStatus { get; set; }
+}

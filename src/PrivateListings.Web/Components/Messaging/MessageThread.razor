@@ -1,0 +1,68 @@
+<div class="message-thread" aria-label="Fil de messages">
+    @if (Thread.Messages.Count == 0)
+    {
+        <EmptyState Title="Aucun message" Description="Le fil est prêt à recevoir un premier message." />
+    }
+    else
+    {
+        @foreach (var message in Thread.Messages)
+        {
+            <article class="message-bubble @(message.IsFromCurrentUser ? "is-own" : null)">
+                <div class="message-heading">
+                    <span>@message.SenderDisplayName</span>
+                    <time datetime="@message.SentAt.ToString("O")">@FormatDate(message.SentAt)</time>
+                </div>
+                <p>@(message.IsDeleted ? "Message supprimé." : message.Body)</p>
+
+                @if (!message.IsFromCurrentUser && !message.IsDeleted)
+                {
+                    <details class="message-report">
+                        <summary>Signaler</summary>
+                        <form method="post" action="@($"/messagerie/{Thread.Id.Value:D}/messages/{message.Id.Value:D}/signaler")" class="message-report-form">
+                            <AntiforgeryToken />
+                            <label class="field-label" for="@($"message-report-reason-{message.Id.Value:N}")">Motif</label>
+                            <input id="@($"message-report-reason-{message.Id.Value:N}")" name="reason" class="field-input" maxlength="160" required />
+
+                            <label class="field-label" for="@($"message-report-details-{message.Id.Value:N}")">Détails facultatifs</label>
+                            <textarea id="@($"message-report-details-{message.Id.Value:N}")" name="details" class="field-input textarea-input" maxlength="2000"></textarea>
+
+                            <button type="submit" class="secondary-button">Envoyer le signalement</button>
+                        </form>
+                    </details>
+                }
+            </article>
+        }
+    }
+</div>
+
+@if (!Thread.IsBlocked)
+{
+    <form method="post" action="@($"/messagerie/{Thread.Id.Value:D}/messages")" class="message-compose">
+        <AntiforgeryToken />
+        <label class="field-label" for="message-body">Message</label>
+        <textarea id="message-body" name="body" class="field-input textarea-input" maxlength="4000" required></textarea>
+        <button type="submit" class="primary-button">Envoyer</button>
+    </form>
+}
+
+<details class="conversation-report">
+    <summary>Signaler la conversation</summary>
+    <form method="post" action="@($"/messagerie/{Thread.Id.Value:D}/signaler")" class="message-report-form">
+        <AntiforgeryToken />
+        <label class="field-label" for="conversation-report-reason">Motif</label>
+        <input id="conversation-report-reason" name="reason" class="field-input" maxlength="160" required />
+
+        <label class="field-label" for="conversation-report-details">Détails facultatifs</label>
+        <textarea id="conversation-report-details" name="details" class="field-input textarea-input" maxlength="2000"></textarea>
+
+        <button type="submit" class="secondary-button">Envoyer le signalement</button>
+    </form>
+</details>
+
+@code {
+    [Parameter, EditorRequired]
+    public PrivateListings.Application.Messaging.ConversationThread Thread { get; set; } = default!;
+
+    private static string FormatDate(DateTimeOffset value)
+        => value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+}

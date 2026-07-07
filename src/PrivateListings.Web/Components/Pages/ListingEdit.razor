@@ -23,13 +23,12 @@
     else
     {
         <div class="listing-form-shell">
-            <a href="@($"/annonces/{details.Id.Value:D}")" class="listing-back-link">Voir l'annonce</a>
-            <div class="listing-edit-heading">
-                <div>
-                    <h1>Modifier l'annonce</h1>
-                    <span class="status-pill @ListingDisplay.StatusClass(details.Status)">@ListingDisplay.StatusLabel(details.Status)</span>
-                </div>
-                <div class="listing-actions">
+            <PageHeader Title="Modifier l'annonce"
+                        Subtitle="@details.Title">
+                <Actions>
+                    <a href="@($"/annonces/{details.Id.Value:D}")" class="secondary-link-button">Voir l'annonce</a>
+                    <StatusBadge CssClass="@ListingDisplay.StatusClass(details.Status)"
+                                 Text="@ListingDisplay.StatusLabel(details.Status)" />
                     @if (details.Status is ListingStatus.Draft or ListingStatus.Expired)
                     {
                         <form method="post" action="@($"/annonces/{details.Id.Value:D}/publier")">
@@ -44,19 +43,17 @@
                             <button type="submit" class="secondary-button">Passer en brouillon</button>
                         </form>
                     }
-                </div>
-            </div>
+                </Actions>
+            </PageHeader>
 
             <StatusMessage Message="@statusMessage" />
 
-            <EditForm Model="Input" method="post" FormName="edit-listing" OnValidSubmit="UpdateAsync" class="account-form">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="account-validation" role="alert" />
-
-                <ListingFormFields Input="Input" Categories="categories" IdPrefix="edit-listing" />
-
-                <button type="submit" class="primary-button">Enregistrer</button>
-            </EditForm>
+            <ListingForm Input="Input"
+                         Categories="categories"
+                         FormName="edit-listing"
+                         IdPrefix="edit-listing"
+                         SubmitLabel="Enregistrer"
+                         OnValidSubmit="UpdateAsync" />
 
             <section class="listing-edit-section">
                 <h2>Images</h2>
@@ -88,10 +85,14 @@
 
             <section class="listing-edit-section listing-danger-zone">
                 <h2>Suppression</h2>
-                <form method="post" action="@($"/annonces/{details.Id.Value:D}/supprimer")">
-                    <AntiforgeryToken />
-                    <button type="submit" class="danger-button">Supprimer logiquement</button>
-                </form>
+                <ConfirmDialog Summary="Supprimer logiquement"
+                               Title="Suppression de l'annonce"
+                               Description="L'annonce ne sera plus visible après confirmation.">
+                    <form method="post" action="@($"/annonces/{details.Id.Value:D}/supprimer")">
+                        <AntiforgeryToken />
+                        <button type="submit" class="danger-button">Confirmer la suppression</button>
+                    </form>
+                </ConfirmDialog>
             </section>
         </div>
     }

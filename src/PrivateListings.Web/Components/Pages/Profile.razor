@@ -1,0 +1,68 @@
+@page "/profil"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.Identity
+@using PrivateListings.Infrastructure.Identity
+
+@inject UserManager<PrivateListingsUser> UserManager
+
+<PageTitle>Profil</PageTitle>
+
+<section class="account-page account-page-wide profile-page">
+    <div class="account-panel account-panel-wide">
+        <PageHeader Title="Profil" Subtitle="Votre espace membre et vos accès principaux.">
+            <Actions>
+                <a class="secondary-link-button" href="/account-security">Sécurité du compte</a>
+            </Actions>
+        </PageHeader>
+
+        @if (currentUser is null)
+        {
+            <EmptyState Title="Session introuvable"
+                        Description="Reconnectez-vous pour consulter votre profil.">
+                <Actions>
+                    <a class="primary-link-button" href="/login">Connexion</a>
+                </Actions>
+            </EmptyState>
+        }
+        else
+        {
+            <ProfileCard DisplayName="@currentUser.DisplayName"
+                         Email="@currentUser.Email"
+                         CreatedAt="@currentUser.CreatedAt"
+                         EmailConfirmed="@currentUser.EmailConfirmed"
+                         TwoFactorEnabled="@currentUser.TwoFactorEnabled"
+                         IsSuspended="@currentUser.IsSuspended" />
+
+            <div class="dashboard-grid profile-shortcuts">
+                <a class="dashboard-tile" href="/mes-annonces">
+                    <span class="nav-icon nav-icon-listings" aria-hidden="true"></span>
+                    <strong>Mes annonces</strong>
+                    <span>Suivre les brouillons, publications et annonces expirées.</span>
+                </a>
+                <a class="dashboard-tile" href="/messagerie">
+                    <span class="nav-icon nav-icon-messages" aria-hidden="true"></span>
+                    <strong>Messagerie</strong>
+                    <span>Lire et répondre aux conversations liées aux annonces.</span>
+                </a>
+                <a class="dashboard-tile" href="/account-security">
+                    <span class="nav-icon nav-icon-profile" aria-hidden="true"></span>
+                    <strong>Sécurité</strong>
+                    <span>Modifier l'email, le mot de passe et la suppression de compte.</span>
+                </a>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private PrivateListingsUser? currentUser;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await UserManager.GetUserAsync(HttpContext.User);
+    }
+}

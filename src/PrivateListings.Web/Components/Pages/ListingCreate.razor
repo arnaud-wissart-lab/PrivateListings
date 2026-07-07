@@ -13,19 +13,20 @@
 
 <section class="listing-page listing-form-page">
     <div class="listing-form-shell">
-        <a href="/annonces" class="listing-back-link">Annonces</a>
-        <h1>Nouvelle annonce</h1>
+        <PageHeader Title="Nouvelle annonce" Subtitle="Préparez un brouillon avant de publier.">
+            <Actions>
+                <a href="/annonces" class="secondary-link-button">Annonces</a>
+            </Actions>
+        </PageHeader>
 
         <StatusMessage Message="@statusMessage" />
 
-        <EditForm Model="Input" method="post" FormName="create-listing" OnValidSubmit="CreateAsync" class="account-form">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="account-validation" role="alert" />
-
-            <ListingFormFields Input="Input" Categories="categories" IdPrefix="create-listing" />
-
-            <button type="submit" class="primary-button">Créer le brouillon</button>
-        </EditForm>
+        <ListingForm Input="Input"
+                     Categories="categories"
+                     FormName="create-listing"
+                     IdPrefix="create-listing"
+                     SubmitLabel="Créer le brouillon"
+                     OnValidSubmit="CreateAsync" />
     </div>
 </section>
 

@@ -58,9 +58,8 @@
                 <section class="admin-panel">
                     <h2>Statut</h2>
                     <p>
-                        <span class="status-pill @BackOfficeDisplay.UserStatusClass(user.SuspendedAt)">
-                            @BackOfficeDisplay.UserStatusLabel(user.SuspendedAt)
-                        </span>
+                        <StatusBadge CssClass="@BackOfficeDisplay.UserStatusClass(user.SuspendedAt)"
+                                     Text="@BackOfficeDisplay.UserStatusLabel(user.SuspendedAt)" />
                     </p>
                     @if (user.SuspendedAt.HasValue)
                     {

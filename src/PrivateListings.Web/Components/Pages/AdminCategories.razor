@@ -33,9 +33,15 @@
             <a class="secondary-link-button" href="/admin/categories">Réinitialiser</a>
         </form>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
+        @if (categories.Items.Count == 0)
+        {
+            <EmptyState Title="Aucune catégorie"
+                        Description="Aucune catégorie ne correspond aux critères actuels." />
+        }
+        else
+        {
+            <AdminTable>
+                <HeaderContent>
                     <tr>
                         <th>Catégorie</th>
                         <th>Statut</th>
@@ -43,8 +49,8 @@
                         <th>Création</th>
                         <th class="admin-actions-cell">Actions</th>
                     </tr>
-                </thead>
-                <tbody>
+                </HeaderContent>
+                <ChildContent>
                     @foreach (var category in categories.Items)
                     {
                         var toggleAction = $"/admin/actions/categories/{category.Id.Value:D}/{(category.IsActive ? "deactivate" : "activate")}";
@@ -58,9 +64,8 @@
                                 }
                             </td>
                             <td>
-                                <span class="status-pill @(category.IsActive ? "is-success" : "is-muted")">
-                                    @(category.IsActive ? "Active" : "Inactive")
-                                </span>
+                                <StatusBadge CssClass="@(category.IsActive ? "is-success" : "is-muted")"
+                                             Text="@(category.IsActive ? "Active" : "Inactive")" />
                             </td>
                             <td>@category.ListingsCount</td>
                             <td>@BackOfficeDisplay.FormatDate(category.CreatedAt)</td>
@@ -90,9 +95,9 @@
                             </td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                </ChildContent>
+            </AdminTable>
+        }
 
         <AdminPagination CurrentPage="@categories.Page" TotalPages="@categories.TotalPages" BuildUrl="BuildPageUrl" />
     </ChildContent>

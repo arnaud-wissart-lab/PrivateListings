@@ -26,9 +26,15 @@
             <a class="secondary-link-button" href="/admin/annonces">Réinitialiser</a>
         </form>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
+        @if (listings.Items.Count == 0)
+        {
+            <EmptyState Title="Aucune annonce"
+                        Description="Aucune annonce ne correspond aux critères actuels." />
+        }
+        else
+        {
+            <AdminTable>
+                <HeaderContent>
                     <tr>
                         <th>Annonce</th>
                         <th>Statut</th>
@@ -38,8 +44,8 @@
                         <th>Dates</th>
                         <th class="admin-actions-cell">Actions</th>
                     </tr>
-                </thead>
-                <tbody>
+                </HeaderContent>
+                <ChildContent>
                     @foreach (var listing in listings.Items)
                     {
                         <tr>
@@ -48,9 +54,8 @@
                                 <small>@listing.Id</small>
                             </td>
                             <td>
-                                <span class="status-pill @BackOfficeDisplay.ListingStatusClass(listing.Status)">
-                                    @BackOfficeDisplay.ListingStatusLabel(listing.Status)
-                                </span>
+                                <StatusBadge CssClass="@BackOfficeDisplay.ListingStatusClass(listing.Status)"
+                                             Text="@BackOfficeDisplay.ListingStatusLabel(listing.Status)" />
                             </td>
                             <td>@ListingDisplay.TypeLabel(listing.Type)</td>
                             <td>@listing.CategoryName</td>
@@ -97,9 +102,9 @@
                             </td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                </ChildContent>
+            </AdminTable>
+        }
 
         <AdminPagination CurrentPage="@listings.Page" TotalPages="@listings.TotalPages" BuildUrl="BuildPageUrl" />
     </ChildContent>

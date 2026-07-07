@@ -1,40 +1,5 @@
 @inherits LayoutComponentBase
 
-<header class="app-shell-header">
-    <a class="app-brand" href="/">PrivateListings</a>
-    <nav class="app-nav" aria-label="Navigation principale">
-        <a href="/">Accueil</a>
-        <a href="/annonces">Annonces</a>
-        <AuthorizeView>
-            <Authorized>
-                <a href="/mes-annonces">Mes annonces</a>
-                <a href="/messagerie">Messagerie</a>
-                <AuthorizeView Policy="@BackOfficePolicies.Moderation" Context="backOfficeAuth">
-                    <Authorized>
-                        <a href="/admin/signalements">Back-office</a>
-                    </Authorized>
-                </AuthorizeView>
-                <a href="/account-security">Sécurité</a>
-                <form action="/account/logout" method="post" class="logout-form">
-                    <AntiforgeryToken />
-                    <input type="hidden" name="returnUrl" value="" />
-                    <button type="submit" class="link-button">Déconnexion</button>
-                </form>
-            </Authorized>
-            <NotAuthorized>
-                <a href="/login">Connexion</a>
-                <a href="/register">Inscription</a>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</header>
-
-<main class="app-shell-main">
+<AppShell>
     @Body
-</main>
-
-<div id="blazor-error-ui" data-nosnippet>
-    Une erreur non gérée s'est produite.
-    <a href="." class="reload">Recharger</a>
-    <span class="dismiss">×</span>
-</div>
+</AppShell>

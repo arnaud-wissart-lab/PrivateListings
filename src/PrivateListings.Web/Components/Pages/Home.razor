@@ -1,12 +1,12 @@
-﻿@page "/"
+@page "/"
 
 <PageTitle>Accueil</PageTitle>
 
-<section class="home-page">
-    <div class="home-intro">
-        <h1>PrivateListings</h1>
-        <p>Annonces privées, coups de main, événements et projets d'entraide locale.</p>
-        <div class="home-actions">
+<section class="home-page dashboard-page">
+    <PageHeader Title="Tableau de bord"
+                Subtitle="Annonces privées, coups de main, événements et projets d'entraide locale."
+                Eyebrow="PrivateListings">
+        <Actions>
             <a class="primary-link-button" href="/annonces">Voir les annonces</a>
             <AuthorizeView>
                 <Authorized>
@@ -16,6 +16,47 @@
                     <a class="secondary-link-button" href="/register">Créer un compte</a>
                 </NotAuthorized>
             </AuthorizeView>
-        </div>
-    </div>
+        </Actions>
+    </PageHeader>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="dashboard-grid">
+                <a class="dashboard-tile" href="/annonces">
+                    <span class="nav-icon nav-icon-listings" aria-hidden="true"></span>
+                    <strong>Annonces</strong>
+                    <span>Parcourir les offres, recherches et services du voisinage.</span>
+                </a>
+                <a class="dashboard-tile" href="/annonces/nouvelle">
+                    <span class="nav-icon nav-icon-publish" aria-hidden="true"></span>
+                    <strong>Publier</strong>
+                    <span>Préparer un brouillon et ajouter les images utiles.</span>
+                </a>
+                <a class="dashboard-tile" href="/messagerie">
+                    <span class="nav-icon nav-icon-messages" aria-hidden="true"></span>
+                    <strong>Messages</strong>
+                    <span>Retrouver les échanges liés à vos annonces.</span>
+                </a>
+                <a class="dashboard-tile" href="/profil">
+                    <span class="nav-icon nav-icon-profile" aria-hidden="true"></span>
+                    <strong>Profil</strong>
+                    <span>Consulter votre espace membre et la sécurité du compte.</span>
+                </a>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="dashboard-grid">
+                <article class="dashboard-tile">
+                    <span class="nav-icon nav-icon-listings" aria-hidden="true"></span>
+                    <strong>Annonces locales</strong>
+                    <span>Objets, services, événements et entraide regroupés dans une interface sobre.</span>
+                </article>
+                <article class="dashboard-tile">
+                    <span class="nav-icon nav-icon-profile" aria-hidden="true"></span>
+                    <strong>Compte privé</strong>
+                    <span>Connexion requise pour publier, répondre et accéder à la messagerie.</span>
+                </article>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
 </section>

@@ -14,7 +14,12 @@
 
 <section class="account-page account-page-wide">
     <div class="account-panel account-panel-wide">
-        <h1>Sécurité du compte</h1>
+        <PageHeader Title="Sécurité du compte"
+                    Subtitle="Gérez les accès, l'email et les demandes sensibles de votre compte.">
+            <Actions>
+                <a class="secondary-link-button" href="/profil">Retour au profil</a>
+            </Actions>
+        </PageHeader>
 
         <StatusMessage Message="@statusMessage" />
 
@@ -31,11 +36,13 @@
                 </div>
                 <div>
                     <span class="summary-label">Confirmation</span>
-                    <strong>@(overview.EmailConfirmed ? "Confirmé" : "En attente")</strong>
+                    <StatusBadge CssClass="@(overview.EmailConfirmed ? "is-success" : "is-warning")"
+                                 Text="@(overview.EmailConfirmed ? "Confirmé" : "En attente")" />
                 </div>
                 <div>
                     <span class="summary-label">MFA</span>
-                    <strong>@(overview.TwoFactorEnabled ? "Activée" : overview.MfaRequiredForAdmin ? "Requise pour admin" : "Non activée")</strong>
+                    <StatusBadge CssClass="@(overview.TwoFactorEnabled ? "is-success" : overview.MfaRequiredForAdmin ? "is-warning" : "is-muted")"
+                                 Text="@(overview.TwoFactorEnabled ? "Activée" : overview.MfaRequiredForAdmin ? "Requise pour admin" : "Non activée")" />
                 </div>
             </div>
 

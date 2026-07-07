@@ -6,9 +6,9 @@
 @inject IBackOfficeService BackOfficeService
 @inject IHostEnvironment HostEnvironment
 
-<PageTitle>Back-office</PageTitle>
+<PageTitle>Administration</PageTitle>
 
-<AdminShell Title="Dashboard" Subtitle="Vue synthétique de l'activité et des points de vigilance." Active="dashboard">
+<AdminShell Title="Tableau de bord" Subtitle="Vue synthétique de l'activité et des points de vigilance." Active="dashboard">
     <HeaderActions>
         @if (HostEnvironment.IsEnvironment("Demo"))
         {
@@ -62,7 +62,7 @@
                 <span>Traiter les signalements ouverts et documenter les décisions.</span>
             </a>
             <a class="admin-action-link" href="/admin/audit">
-                <strong>AuditLogs</strong>
+                <strong>Audit logs</strong>
                 <span>Consulter les actions sensibles journalisées.</span>
             </a>
         </div>

@@ -1,0 +1,49 @@
+@if (Conversations.Count == 0)
+{
+    <EmptyState Title="Aucune conversation"
+                Description="Les réponses envoyées depuis une annonce apparaîtront ici." />
+}
+else
+{
+    <div class="conversation-list">
+        @foreach (var conversation in Conversations)
+        {
+            <article class="conversation-row @(conversation.IsUnread ? "is-unread" : null)">
+                <a class="conversation-row-main" href="@($"/messagerie/{conversation.Id.Value:D}")">
+                    <span class="conversation-participant">@conversation.OtherParticipantDisplayName</span>
+                    @if (!string.IsNullOrWhiteSpace(conversation.ListingTitle))
+                    {
+                        <span class="conversation-listing">@conversation.ListingTitle</span>
+                    }
+                    <span class="conversation-meta">
+                        @if (conversation.IsUnread)
+                        {
+                            <span class="unread-dot" aria-hidden="true"></span>
+                            <span>Non lu</span>
+                        }
+                        else
+                        {
+                            <span>Lu</span>
+                        }
+                        <time datetime="@((conversation.LastMessageAt ?? conversation.CreatedAt).ToString("O"))">
+                            @FormatDate(conversation.LastMessageAt ?? conversation.CreatedAt)
+                        </time>
+                    </span>
+                </a>
+
+                @if (conversation.IsBlocked)
+                {
+                    <StatusBadge CssClass="is-danger" Text="Bloquée" />
+                }
+            </article>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ConversationSummary> Conversations { get; set; } = [];
+
+    private static string FormatDate(DateTimeOffset value)
+        => value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+}

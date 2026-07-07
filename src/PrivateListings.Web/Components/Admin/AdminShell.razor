@@ -1,10 +1,10 @@
 <section class="admin-shell">
     <aside class="admin-sidebar" aria-label="Navigation back-office">
-        <a class="admin-brand" href="/admin">Back-office</a>
+        <a class="admin-brand" href="/admin">Administration</a>
         <nav>
             <AuthorizeView Policy="@BackOfficePolicies.Admin">
                 <Authorized>
-                    <a class="@LinkClass("dashboard")" href="/admin">Dashboard</a>
+                    <a class="@LinkClass("dashboard")" href="/admin">Tableau de bord</a>
                     <a class="@LinkClass("users")" href="/admin/utilisateurs">Utilisateurs</a>
                 </Authorized>
             </AuthorizeView>
@@ -12,7 +12,7 @@
             <a class="@LinkClass("reports")" href="/admin/signalements">Signalements</a>
             <AuthorizeView Policy="@BackOfficePolicies.Admin">
                 <Authorized>
-                    <a class="@LinkClass("audit")" href="/admin/audit">AuditLogs</a>
+                    <a class="@LinkClass("audit")" href="/admin/audit">Audit logs</a>
                     <a class="@LinkClass("categories")" href="/admin/categories">Catégories</a>
                 </Authorized>
             </AuthorizeView>

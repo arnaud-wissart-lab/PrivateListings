@@ -1,0 +1,24 @@
+<span class="status-pill @CssClass" title="@Title">
+    @if (ChildContent is null)
+    {
+        @Text
+    }
+    else
+    {
+        @ChildContent
+    }
+</span>
+
+@code {
+    [Parameter]
+    public string? Text { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

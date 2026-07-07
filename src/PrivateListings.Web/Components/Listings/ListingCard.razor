@@ -1,0 +1,39 @@
+<article class="listing-card">
+    <a href="@DetailsUrl" class="listing-card-media" aria-label="@Listing.Title">
+        @if (Listing.CoverImage is null)
+        {
+            <span>@ListingDisplay.TypeLabel(Listing.Type)</span>
+        }
+        else
+        {
+            <img src="@ListingDisplay.ImageUrl(Listing.CoverImage.Id.Value)" alt="@Listing.CoverImage.AltText" loading="lazy" />
+        }
+    </a>
+    <div class="listing-card-body">
+        <div class="listing-card-meta">
+            <span>@ListingDisplay.TypeLabel(Listing.Type)</span>
+            <span>@Listing.CategoryName</span>
+            @if (ShowStatus)
+            {
+                <StatusBadge CssClass="@ListingDisplay.StatusClass(Listing.Status)"
+                             Text="@ListingDisplay.StatusLabel(Listing.Status)" />
+            }
+        </div>
+        <h2><a href="@DetailsUrl">@Listing.Title</a></h2>
+        <p>@Listing.Description</p>
+        <div class="listing-card-footer">
+            <span>@(Listing.ApproximateLocation ?? "Secteur non précisé")</span>
+            <strong>@ListingDisplay.FormatPrice(Listing.Price)</strong>
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public ListingSummary Listing { get; set; } = default!;
+
+    [Parameter]
+    public bool ShowStatus { get; set; }
+
+    private string DetailsUrl => $"/annonces/{Listing.Id.Value:D}";
+}

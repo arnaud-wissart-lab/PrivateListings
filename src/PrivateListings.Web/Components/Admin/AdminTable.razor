@@ -1,0 +1,26 @@
+<div class="admin-table-wrap @CssClass">
+    <table class="admin-table" style="@TableStyle">
+        <thead>
+            @HeaderContent
+        </thead>
+        <tbody>
+            @ChildContent
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter]
+    public string MinWidth { get; set; } = "980px";
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment HeaderContent { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    private string TableStyle => $"min-width: {MinWidth}";
+}

@@ -1,0 +1,41 @@
+<aside class="app-sidebar" aria-label="Navigation principale">
+    <a class="sidebar-brand" href="/" aria-label="PrivateListings">
+        <span class="brand-mark" aria-hidden="true">PL</span>
+        <span>PrivateListings</span>
+    </a>
+
+    <nav class="sidebar-nav">
+        <NavLink class="app-nav-link" ActiveClass="is-active" href="/" Match="NavLinkMatch.All">
+            <span class="nav-icon nav-icon-dashboard" aria-hidden="true"></span>
+            <span>Tableau de bord</span>
+        </NavLink>
+        <NavLink class="app-nav-link" ActiveClass="is-active" href="/annonces">
+            <span class="nav-icon nav-icon-listings" aria-hidden="true"></span>
+            <span>Annonces</span>
+        </NavLink>
+        <NavLink class="app-nav-link" ActiveClass="is-active" href="/annonces/nouvelle">
+            <span class="nav-icon nav-icon-publish" aria-hidden="true"></span>
+            <span>Publier</span>
+        </NavLink>
+        <AuthorizeView>
+            <Authorized>
+                <NavLink class="app-nav-link" ActiveClass="is-active" href="/messagerie">
+                    <span class="nav-icon nav-icon-messages" aria-hidden="true"></span>
+                    <span>Messages</span>
+                </NavLink>
+                <NavLink class="app-nav-link" ActiveClass="is-active" href="/profil">
+                    <span class="nav-icon nav-icon-profile" aria-hidden="true"></span>
+                    <span>Profil</span>
+                </NavLink>
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Policy="@BackOfficePolicies.Moderation">
+            <Authorized>
+                <NavLink class="app-nav-link" ActiveClass="is-active" href="/admin/signalements">
+                    <span class="nav-icon nav-icon-admin" aria-hidden="true"></span>
+                    <span>Administration</span>
+                </NavLink>
+            </Authorized>
+        </AuthorizeView>
+    </nav>
+</aside>

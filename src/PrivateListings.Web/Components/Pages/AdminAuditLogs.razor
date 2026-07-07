@@ -5,9 +5,9 @@
 
 @inject IBackOfficeService BackOfficeService
 
-<PageTitle>AuditLogs - Back-office</PageTitle>
+<PageTitle>Audit logs - Back-office</PageTitle>
 
-<AdminShell Title="AuditLogs" Subtitle="Journal des actions sensibles et événements de sécurité." Active="audit">
+<AdminShell Title="Audit logs" Subtitle="Journal des actions sensibles et événements de sécurité." Active="audit">
     <ChildContent>
         <form method="get" class="admin-filter-bar">
             <label class="field-label" for="q">Recherche</label>
@@ -16,9 +16,15 @@
             <a class="secondary-link-button" href="/admin/audit">Réinitialiser</a>
         </form>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
+        @if (auditLogs.Items.Count == 0)
+        {
+            <EmptyState Title="Aucun événement"
+                        Description="Aucune entrée d'audit ne correspond aux critères actuels." />
+        }
+        else
+        {
+            <AdminTable MinWidth="900px">
+                <HeaderContent>
                     <tr>
                         <th>Date</th>
                         <th>Action</th>
@@ -26,8 +32,8 @@
                         <th>Sujet</th>
                         <th>Métadonnées</th>
                     </tr>
-                </thead>
-                <tbody>
+                </HeaderContent>
+                <ChildContent>
                     @foreach (var auditLog in auditLogs.Items)
                     {
                         <tr>
@@ -53,9 +59,9 @@
                             </td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                </ChildContent>
+            </AdminTable>
+        }
 
         <AdminPagination CurrentPage="@auditLogs.Page" TotalPages="@auditLogs.TotalPages" BuildUrl="BuildPageUrl" />
     </ChildContent>

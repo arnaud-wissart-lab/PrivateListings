@@ -1,0 +1,39 @@
+<EditForm Model="Input" method="post" FormName="@FormName" OnValidSubmit="HandleValidSubmit" class="account-form listing-form">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="account-validation" role="alert" />
+
+    <ListingFormFields Input="Input" Categories="Categories" IdPrefix="@IdPrefix" />
+
+    @if (FooterContent is not null)
+    {
+        @FooterContent
+    }
+
+    <button type="submit" class="primary-button">@SubmitLabel</button>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired]
+    public ListingFormInput Input { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ListingCategoryOption> Categories { get; set; } = [];
+
+    [Parameter]
+    public string FormName { get; set; } = "listing";
+
+    [Parameter]
+    public string IdPrefix { get; set; } = "listing";
+
+    [Parameter]
+    public string SubmitLabel { get; set; } = "Enregistrer";
+
+    [Parameter]
+    public EventCallback OnValidSubmit { get; set; }
+
+    [Parameter]
+    public RenderFragment? FooterContent { get; set; }
+
+    private Task HandleValidSubmit()
+        => OnValidSubmit.HasDelegate ? OnValidSubmit.InvokeAsync() : Task.CompletedTask;
+}
