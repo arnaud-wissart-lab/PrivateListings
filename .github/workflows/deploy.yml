@@ -128,7 +128,7 @@ jobs:
           : "${GEEKOM_SSH_KEY:?Le secret GEEKOM_SSH_KEY est requis.}"
 
       - name: Charger la clé SSH
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.GEEKOM_SSH_KEY }}
 
